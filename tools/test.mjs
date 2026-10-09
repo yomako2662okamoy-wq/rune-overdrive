@@ -826,3 +826,20 @@ test('ミュートは旧セーブでオフを補完し、オンを保存して�
  old.settings.mute=true;
  assert.equal(logic.parseSave(JSON.stringify(old)).settings.mute,true);
 });
+
+
+test('編成の成長一覧は習得済みと次の連鎖技だけを出し、キャラ別の技名と条件を保つ',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const configData=html.slice(html.indexOf('const CONFIG ='),html.indexOf('// ===== UTIL ====='));
+ const artNameSource=html.match(/^function artName\(.*$/m)[0];
+ const growthSource=html.slice(html.indexOf('function perkText('),html.indexOf('// 仲間の詳細：立ち絵'));
+ const context=vm.createContext({});vm.runInContext(configData+artNameSource+'\n'+growthSource,context);
+ const compact=vm.runInContext('growthHtml(CHARS[0],20,true)',context);
+ for(const value of ['Lv5','Lv10','Lv15','Lv20','Lv25','紅閃','紅蓮斬','緋焔乱舞','7連鎖で発動','攻撃 +10%','スキルの溜め −1ターン'])assert(compact.includes(value),value);
+ assert(!compact.includes('Lv35'));assert(!compact.includes('紅蓮天墜'));
+ assert(vm.runInContext('growthHtml(CHARS[0],20)',context).includes('紅蓮天墜'),'詳細画面は全成長一覧を保つ');
+ const beginner=vm.runInContext('growthHtml(CHARS[0],1,true)',context);
+ assert(beginner.includes('Lv5'));assert(!beginner.includes('Lv15'));
+ const max=vm.runInContext('growthHtml(CHARS[0],50,true)',context);assert(max.includes('奥義の威力 ×1.5'));assert(!max.includes('未習得'));
+ for(let i=0;i<chars.length;i++)assert(vm.runInContext('growthHtml(CHARS['+i+'],35,true)',context).includes('10連鎖で発動'));
+});

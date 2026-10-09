@@ -1,5 +1,6 @@
 import { smokePerformance } from './smoke-performance.mjs';
 import { execFileSync } from 'node:child_process';
+import { smokeTeam } from './smoke-team.mjs';
 import { smokeArt } from './smoke-art.mjs';
 import assert from 'node:assert/strict';
 import { smokeUsability } from './smoke-usability.mjs';
@@ -52,6 +53,7 @@ try {
   mkdirSync(resolve(root, "screenshots"), {recursive:true});
   await smokePerformance(browser,url,root,errors,!!baseline);
   await smokeArt(browser,url,root,errors);
+  await smokeTeam(browser,url,root,errors);
   await smokeUsability(browser,url,root,errors);
   for (const testCase of [
     { board: '7x6', viewport: { width: 390, height: 844 } },
@@ -277,11 +279,13 @@ try {
   for(const [slot,id] of ['kagura','shizuku','tsubaki','hikari','crow'].entries()) {
     await cPage.locator('.slot[data-slot="'+slot+'"]').click();
     await cPage.locator('#teamContent .roster-card[data-id="'+id+'"]').click();
+    await cPage.locator('#equipMemberBtn').click();
   }
   assert.deepEqual(await cPage.evaluate(()=>RUNE_DEBUG.save.teams[1].members),['kagura','shizuku','tsubaki','hikari','crow']);
   await cPage.locator('.team-tab[data-index="2"]').click();
   await cPage.locator('.slot[data-slot="0"]').click();
   await cPage.locator('#teamContent .roster-card[data-id="yomogi"]').click();
+  await cPage.locator('#equipMemberBtn').click();
   for(let slot=4;slot>=1;slot--) {
     await cPage.locator('.slot[data-slot="'+slot+'"]').click();await cPage.locator('#removeMemberBtn').click();
   }
@@ -289,8 +293,10 @@ try {
   assert.equal(await cPage.locator('#removeMemberBtn').isDisabled(),true);
   // 空き枠の最後を選んでも左詰めで追加され、既にいる仲間は重複しない。
   await cPage.locator('.slot[data-slot="4"]').click();await cPage.locator('#teamContent .roster-card[data-id="akane"]').click();
+  await cPage.locator('#equipMemberBtn').click();
   assert.deepEqual(await cPage.evaluate(()=>RUNE_DEBUG.save.teams[2].members),['yomogi','akane']);
   await cPage.locator('.slot[data-slot="0"]').click();await cPage.locator('#teamContent .roster-card[data-id="akane"]').click();
+  await cPage.locator('#equipMemberBtn').click();
   assert.deepEqual(await cPage.evaluate(()=>RUNE_DEBUG.save.teams[2].members),['akane','yomogi']);
   await cPage.locator('.team-tab[data-index="1"]').click();
   for(const viewport of [{width:390,height:844},{width:375,height:667}]) {

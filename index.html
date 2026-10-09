@@ -178,7 +178,7 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
 .emblem.large{width:min(62vw,240px);max-width:240px}
 .emblem.face-only{object-fit:cover;border:3px solid #D4A24A;box-shadow:0 0 0 1px rgba(255,240,196,.5),inset 0 -12px 16px -8px var(--c);clip-path:polygon(24% 0,76% 0,100% 24%,100% 76%,76% 100%,24% 100%,0 76%,0 24%)}
 .growth{list-style:none;margin:.3rem 0 0;padding:0;text-align:left}
-.growth li{display:grid;grid-template-columns:3.1rem 1fr auto;gap:.6rem;align-items:center;padding:.45rem .1rem;border-bottom:1px solid var(--rule);color:var(--ink-2)}
+.growth li{display:grid;grid-template-columns:3.1rem minmax(0,1fr) auto;gap:.6rem;align-items:center;padding:.45rem .1rem;border-bottom:1px solid var(--rule);color:var(--ink-2)}
 .growth li.got{color:var(--ink)}
 .growth .g-lv{font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-2)}
 .growth li.got .g-lv{color:var(--gold)}
@@ -197,6 +197,17 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
 .roster-card strong,.roster-card small{display:block}
 .roster-card small{color:var(--ink-2);font-size:.72rem;line-height:1.5}
 .roster-card:disabled{opacity:.45;cursor:default}
+.team-member-panel{margin:1rem 0;padding:.8rem;border:1px solid var(--rule);background:var(--panel);text-align:left;overflow-wrap:anywhere}
+.team-member-panel h3{margin:.7rem 0 .3rem;font-size:.94rem}
+.team-member-panel p{font-size:.85rem;line-height:1.65}
+.team-member-heading{display:flex;align-items:center;gap:.7rem}
+.team-member-heading .emblem{width:64px;flex:0 0 64px;margin:0}
+.team-member-heading>div{min-width:0}
+.team-member-actions{display:flex;gap:.5rem;margin-top:.8rem}
+.team-member-actions .btn{flex:1;min-width:0;padding:.7rem .4rem;font-size:.82rem}
+.roster-card[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
+.roster-card.unjoined{color:var(--ink-2)}
+.team-join-condition{color:var(--gold)}
 .portrait{text-align:center;padding:1rem}
 .wallet{color:var(--gold);font-weight:700}
 .join-card{position:relative;overflow:hidden}
@@ -4538,7 +4549,7 @@ function leaveBattle() {
   clock.paused = false;
   buildBackground();
 }
-let teamSlot = 0, detailOrigin = "roster";
+let teamSlot = 0, teamSelected = null, detailOrigin = "roster";
 // レベルで覚える連鎖技（ARTS）と能力アップ（LV_PERKS）を、レベルの順に並べる
 function perkText(k) {
   const parts = [];
@@ -4547,12 +4558,14 @@ function perkText(k) {
   if (k.art) parts.push("奥義の威力 ×" + k.art);
   return parts.join("・");
 }
-function growthHtml(ch, lv) {
+function growthHtml(ch, lv, compact = false) {
   const items = [
     ...CONFIG.ARTS.map((a) => ({ lv: a.lv, html: '<strong>' + a.label + '「' + artName(ch, a.tier) + '」</strong><small>' + a.chain + '連鎖で発動' + (a.all ? '・敵全体' : '') + '</small>' })),
     ...CONFIG.LV_PERKS.map((k) => ({ lv: k.lv, html: '<strong>' + perkText(k) + '</strong>' })),
   ].sort((a, b) => a.lv - b.lv);
-  return '<ul class="growth">' + items.map((it) => '<li class="' + (lv >= it.lv ? 'got' : '') + '"><span class="g-lv">Lv' + it.lv + '</span><span>' + it.html + '</span><span class="g-state">' + (lv >= it.lv ? '習得' : '未習得') + '</span></li>').join("") + '</ul>';
+  const nextLv = CONFIG.ARTS.find(a => a.lv > lv)?.lv;
+  const visible = compact ? items.filter(it => it.lv <= lv || it.lv === nextLv) : items;
+  return '<ul class="growth">' + visible.map((it) => '<li class="' + (lv >= it.lv ? 'got' : '') + '"><span class="g-lv">Lv' + it.lv + '</span><span>' + it.html + '</span><span class="g-state">' + (lv >= it.lv ? '習得' : '未習得') + '</span></li>').join("") + '</ul>';
 }
 // そのレベルで覚えたもの（結果画面のお知らせ用）。なければ空
 function learnedText(ch, lv) {
@@ -4584,35 +4597,54 @@ function bindButton(id, callback) { $(id).addEventListener("click", () => { Soun
 function showHome() {
   const team = prepareTeam(saveData);
   $("homeContent").innerHTML = '<header class="sel-head"><h2>ホーム</h2><span class="wallet">結晶 ' + fmt(saveData.crystal) + '</span></header><p class="note">RUNE OVERDRIVE</p><div class="team-preview">' + team.party.map(member => '<div>' + emblem(member) + '<small>' + member.name + '<br>Lv' + member.lv + '</small></div>').join("") + '</div><p class="leader">リーダー：' + team.party[0].name + ' ／ ' + team.party[0].leader.desc + '</p><p class="board-note">編成' + (saveData.teamIndex + 1) + '　HP ' + fmt(team.teamMax) + ' ／回復 ' + fmt(team.rcv) + '</p><nav class="home-menu"><button id="homeAdventureBtn" class="btn primary">冒険</button><button class="btn" disabled>無限の塔（準備中）</button><button class="btn" disabled>デイリー（準備中）</button><button id="homeTeamBtn" class="btn">編成</button><button id="homeRosterBtn" class="btn">仲間</button><button id="homeSettingsBtn" class="btn">設定</button></nav><p class="board-note">デイリー：' + (saveData.daily.date === todayKey() && saveData.daily.rewarded ? '今日はクリア済み' : '今日は未クリア') + '</p>';
-  bindButton("homeAdventureBtn",showSelect); bindButton("homeTeamBtn",() => {teamSlot=0;showTeam();}); bindButton("homeRosterBtn",showRoster);
+  bindButton("homeAdventureBtn",showSelect); bindButton("homeTeamBtn",() => {teamSlot=0;teamSelected=null;showTeam();}); bindButton("homeRosterBtn",showRoster);
   bindButton("homeSettingsBtn",() => openSettings(showHome)); menuScene("home");
 }
 function todayKey() { const date = new Date(); return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-"); }
 function joinText(ch) { return ch.joinDungeon ? "ダンジョン" + ch.joinDungeon.slice(1) + "クリアで加入" : "最初から"; }
 function showTeam() {
+  const scrollTop = scene === "team" ? $("team").scrollTop : 0;
   const team = saveData.teams[saveData.teamIndex], prepared = prepareTeam(saveData);
-  $("teamContent").innerHTML = '<header class="sel-head"><h2>編成</h2><button id="teamHomeBtn" class="btn ghost">ホームへ</button></header><div class="team-tabs">' + Array.from({length:CONFIG.TEAM_MAX},(_,i) => '<button class="btn team-tab" data-index="' + i + '" aria-pressed="' + (i === saveData.teamIndex) + '">編成' + (i+1) + '</button>').join("") + '</div><p class="board-note">枠を選んで、下の仲間をタップすると入れ替え。左端がリーダー。</p><div class="team-slots">' + Array.from({length:CONFIG.TEAM_MEMBERS},(_,i) => {
+  teamSelected ||= team.members[teamSlot] || team.members[0];
+  $("teamContent").innerHTML = '<header class="sel-head"><h2>編成</h2><button id="teamHomeBtn" class="btn ghost">ホームへ</button></header><div class="team-tabs">' + Array.from({length:CONFIG.TEAM_MAX},(_,i) => '<button class="btn team-tab" data-index="' + i + '" aria-pressed="' + (i === saveData.teamIndex) + '">編成' + (i+1) + '</button>').join("") + '</div><p class="board-note">枠と仲間を選び、能力を確認して「この枠に入れる」で入れ替え。左端がリーダー。</p><div class="team-slots">' + Array.from({length:CONFIG.TEAM_MEMBERS},(_,i) => {
     const id = team.members[i], ch = CHARS.find(member => member.id === id);
     return '<button class="slot" data-slot="' + i + '" aria-label="' + (i === 0 ? 'リーダー' : '枠'+(i+1)) + '" aria-pressed="' + (i === teamSlot) + '">' + (ch ? emblem(ch) + '<small>' + ch.name + '<br>Lv' + saveData.roster[id].lv + '</small>' : '<span>＋</span><small>空き</small>') + '</button>';
-  }).join("") + '</div><p class="leader">' + prepared.party[0].leader.name + '：' + prepared.party[0].leader.desc + '</p><p class="board-note" id="teamTotals">チームHP ' + fmt(prepared.teamMax) + ' ／回復力 ' + fmt(prepared.rcv) + '</p><button id="removeMemberBtn" class="btn ghost"' + (team.members.length <= 1 || teamSlot >= team.members.length ? ' disabled' : '') + '>選んだ枠を空ける</button><h3>仲間</h3><div class="roster-grid">' + CHARS.map(ch => '<button class="roster-card" data-id="' + ch.id + '"' + (!saveData.roster[ch.id] ? ' disabled' : '') + '>' + emblem(ch) + '<strong>' + ch.name + '</strong><small>' + (saveData.roster[ch.id] ? 'Lv' + saveData.roster[ch.id].lv + (team.members.includes(ch.id) ? '　編成中' : '') : joinText(ch)) + '</small></button>').join("") + '</div><p class="board-note">変更は自動保存されます。編成は1〜5体、同じ仲間は1体まで。</p>';
+  }).join("") + '</div><p class="leader">' + prepared.party[0].leader.name + '：' + prepared.party[0].leader.desc + '</p><p class="board-note" id="teamTotals">チームHP ' + fmt(prepared.teamMax) + ' ／回復力 ' + fmt(prepared.rcv) + '</p><button id="removeMemberBtn" class="btn ghost"' + (team.members.length <= 1 || teamSlot >= team.members.length ? ' disabled' : '') + '>選んだ枠を空ける</button><section id="teamMemberPanel" class="team-member-panel" aria-label="選んだ仲間の能力"></section><h3>仲間</h3><div class="roster-grid">' + CHARS.map(ch => '<button class="roster-card' + (!saveData.roster[ch.id] ? ' unjoined' : '') + '" data-id="' + ch.id + '" aria-pressed="' + (ch.id === teamSelected) + '">' + emblem(ch) + '<strong>' + ch.name + '</strong><small>' + (saveData.roster[ch.id] ? 'Lv' + saveData.roster[ch.id].lv + (team.members.includes(ch.id) ? '　編成中' : '') : joinText(ch)) + '</small></button>').join("") + '</div><p class="board-note">変更は自動保存されます。編成は1〜5体、同じ仲間は1体まで。</p>';
   bindButton("teamHomeBtn",showHome);
   $("teamContent").querySelectorAll(".team-tab").forEach(button => button.addEventListener("click",() => {
     const index = Number(button.dataset.index), members = saveData.teams[index]?.members || team.members;
-    adoptSave(setTeam(saveData,index,members)); teamSlot=0; showTeam();
+    adoptSave(setTeam(saveData,index,members)); teamSlot=0; teamSelected=members[0]; showTeam();
   }));
   $("teamContent").querySelectorAll(".slot").forEach(button => button.addEventListener("click",() => {
-    teamSlot = Math.min(Number(button.dataset.slot),team.members.length); showTeam();
+    teamSlot = Math.min(Number(button.dataset.slot),team.members.length); teamSelected=team.members[teamSlot] || teamSelected; showTeam();
   }));
   $("teamContent").querySelectorAll(".roster-card").forEach(button => button.addEventListener("click",() => {
-    const members = [...team.members], id = button.dataset.id, existing = members.indexOf(id);
-    if (existing >= 0) {
-      if (teamSlot < members.length) [members[existing],members[teamSlot]] = [members[teamSlot],members[existing]];
-      else { members.splice(existing,1); members.push(id); teamSlot=members.length-1; }
-    } else members[teamSlot] = id;
-    adoptSave(setTeam(saveData,saveData.teamIndex,members)); showTeam();
+    teamSelected = button.dataset.id; renderTeamMemberPanel();
+    $("teamContent").querySelectorAll(".roster-card").forEach(card => card.setAttribute("aria-pressed",String(card.dataset.id === teamSelected)));
+    $("teamMemberPanel").scrollIntoView({block:"nearest"});
   }));
-  bindButton("removeMemberBtn",() => {const members=[...team.members];members.splice(teamSlot,1);adoptSave(setTeam(saveData,saveData.teamIndex,members));teamSlot=Math.min(teamSlot,members.length-1);showTeam();});
-  menuScene("team");
+  bindButton("removeMemberBtn",() => {const members=[...team.members];members.splice(teamSlot,1);adoptSave(setTeam(saveData,saveData.teamIndex,members));teamSlot=Math.min(teamSlot,members.length-1);teamSelected=members[teamSlot];showTeam();});
+  renderTeamMemberPanel(); menuScene("team"); $("team").scrollTop=scrollTop;
+}
+// 編成で選んだ仲間の表示。能力の計算は既存のgrowCharacterを使う。
+function renderTeamMemberPanel() {
+  const ch = CHARS.find(member => member.id === teamSelected);
+  if (!ch) { $("teamMemberPanel").innerHTML = '<p class="board-note">仲間を選ぶと能力を表示します。</p>'; return; }
+  const progress = saveData.roster[ch.id], member = growCharacter(ch,progress);
+  const nextArt = CONFIG.ARTS.find(art => art.lv > member.lv);
+  $("teamMemberPanel").dataset.id = ch.id;
+  $("teamMemberPanel").innerHTML = '<div class="team-member-heading">' + emblem(ch) + '<div><h3>' + ch.name + '</h3><p class="board-note">' + RUNES[ch.attr].name + '属性 ／ Lv' + member.lv + (progress ? '' : '（未加入・Lv1の能力）') + '</p></div></div><dl class="stats"><dt>HP</dt><dd data-stat="hp">' + fmt(member.hp) + '</dd><dt>攻撃</dt><dd data-stat="atk">' + fmt(member.atk) + '</dd><dt>回復</dt><dd data-stat="rcv">' + fmt(member.rcv) + '</dd></dl><h3>リーダースキル「' + ch.leader.name + '」</h3><p class="leader">' + ch.leader.desc + '</p><h3>スキル「' + member.skill.name + '」</h3><p class="board-note">溜め ' + member.skill.turns + 'ターン ／ スキルLv' + member.skillLv + '</p><p>' + member.skill.desc + '</p><h3>習得済みの連鎖技と能力</h3><p class="board-note">' + (nextArt ? '次に覚える技：Lv' + nextArt.lv + ' ' + nextArt.label + '「' + artName(ch,nextArt.tier) + '」／' + nextArt.chain + '連鎖で発動' : 'すべての連鎖技を習得済み') + '</p>' + growthHtml(ch,member.lv,true) + (!progress ? '<p class="team-join-condition">加入条件：' + joinText(ch) + '</p>' : '') + '<div class="team-member-actions"><button id="equipMemberBtn" class="btn primary"' + (!progress ? ' disabled aria-describedby="teamJoinCondition"' : '') + '>この枠に入れる</button><button id="teamDetailBtn" class="btn ghost">くわしく</button></div>';
+  const condition = $("teamMemberPanel").querySelector(".team-join-condition"); if (condition) condition.id="teamJoinCondition";
+  bindButton("teamDetailBtn",() => showDetail(ch.id,"team"));
+  bindButton("equipMemberBtn",() => {
+    if (!saveData.roster[ch.id]) return;
+    const members=[...saveData.teams[saveData.teamIndex].members], existing=members.indexOf(ch.id);
+    if (existing >= 0) {
+      if (teamSlot < members.length) [members[existing],members[teamSlot]]=[members[teamSlot],members[existing]];
+      else { members.splice(existing,1);members.push(ch.id);teamSlot=members.length-1; }
+    } else members[teamSlot]=ch.id;
+    adoptSave(setTeam(saveData,saveData.teamIndex,members));showTeam();
+  });
 }
 function showRoster() {
   $("rosterContent").innerHTML = '<header class="sel-head"><h2>仲間</h2><button id="rosterHomeBtn" class="btn ghost">ホームへ</button></header><p class="board-note">加入済み ' + Object.keys(saveData.roster).length + ' / ' + CHARS.length + '体</p><div class="roster-grid">' + CHARS.map(ch => '<button class="roster-card" data-id="' + ch.id + '">' + emblem(ch) + '<strong>' + ch.name + '</strong><small>' + (saveData.roster[ch.id] ? 'Lv' + saveData.roster[ch.id].lv + ' ／スキルLv' + saveData.roster[ch.id].skillLv : joinText(ch)) + '</small></button>').join("") + '</div>';
@@ -4624,7 +4656,7 @@ function showDetail(id, origin = detailOrigin) {
   const cost = progress ? CONFIG.SKILL_LV_COST[progress.skillLv-1] : undefined;
   const ratio = member.lv >= CONFIG.LV_MAX ? 100 : member.exp / expNeeded(member.lv) * 100;
   $("detailContent").innerHTML = '<header class="sel-head"><h2>' + ch.name + '</h2><button id="detailBackBtn" class="btn ghost">戻る</button></header><div class="portrait">' + portraitHtml(ch) + '</div><p class="note">' + RUNES[ch.attr].name + '属性 ／ ' + (progress ? 'Lv'+member.lv : '未加入：'+joinText(ch)) + '</p><div class="exp-track"><span style="width:' + ratio + '%"></span></div><p class="board-note">経験値 ' + (member.lv >= CONFIG.LV_MAX ? 'MAX' : fmt(member.exp)+' / '+fmt(expNeeded(member.lv))) + '</p><dl class="stats"><dt>HP</dt><dd>' + fmt(member.hp) + '</dd><dt>攻撃</dt><dd>' + fmt(member.atk) + '</dd><dt>回復</dt><dd>' + fmt(member.rcv) + '</dd></dl><div class="party"><h3>リーダースキル「' + ch.leader.name + '」</h3><p class="leader">' + ch.leader.desc + '</p><h3>' + member.skill.name + ' Lv' + member.skillLv + '（' + member.skill.turns + 'ターン）</h3><p class="board-note">' + member.skill.desc + '</p><h3>レベルで覚える技と能力</h3>' + growthHtml(ch, member.lv) + '</div><p class="wallet">ルーン結晶 ' + fmt(saveData.crystal) + '</p><button id="upgradeSkillBtn" class="btn primary"' + (!progress || cost === undefined || saveData.crystal < cost ? ' disabled' : '') + '>' + (progress && cost === undefined ? 'スキルLv最大' : 'スキル強化（結晶' + (cost ?? CONFIG.SKILL_LV_COST[0]) + '）') + '</button>';
-  bindButton("detailBackBtn",() => {if(origin === "select")showSelect();else showRoster();});
+  bindButton("detailBackBtn",() => {if(origin === "select")showSelect();else if(origin === "team")showTeam();else showRoster();});
   bindButton("upgradeSkillBtn",() => {adoptSave(upgradeSkill(saveData,id).next);showDetail(id,origin);});
   menuScene("detail");
 }
