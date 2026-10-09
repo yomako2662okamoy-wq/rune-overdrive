@@ -194,8 +194,9 @@ test('育成の必要経験値・連続レベルアップ・能力・上限・�
   assert.equal(logic.gainExperience({lv:50,exp:0,skillLv:1},9999).after.exp,0);
   for(const lv of [1,20,50]) {
     const member=logic.growCharacter(chars[0],{lv,exp:7,skillLv:3});
-    for(const stat of ['hp','atk','rcv'])assert.equal(member[stat],Math.round(chars[0][stat]*(1+.03*(lv-1))));
-    assert.equal(member.skill.turns,4);
+    const atkBoost={1:1,20:1.21,50:1.7602475}[lv];
+    for(const stat of ['hp','atk','rcv'])assert.equal(member[stat],Math.round(chars[0][stat]*(1+.03*(lv-1))*(stat==='atk'?atkBoost:1)));
+    assert.equal(member.skill.turns,lv<20?4:3);
   }
   const saved=logic.createSave();saved.crystal=110;
   const upgraded=logic.upgradeSkill(deepFreeze(saved),'akane');
@@ -747,4 +748,81 @@ test('素材の一覧とダブルクリック用の一覧が一致し、登録�
  const files=[...Object.values(manifest.enemies),...Object.values(manifest.bosses)].map(e=>e.file);
  for(const entry of Object.values(manifest.chars))files.push(entry.full,entry.face);
  for(const file of files.filter(Boolean)){assert(file.startsWith('assets/')&&!file.includes('..'));assert(readFileSync(new URL('../'+file,import.meta.url)).length>0);}
+});
+
+
+test('成長能力はLv9／10／20／50の境界と奥義倍率を守る',()=>{
+ assert.deepEqual(plain(logic.levelPerks(9)),{atk:1,skillTurn:0,art:1});
+ assert.deepEqual(plain(logic.levelPerks(10)),{atk:1.1,skillTurn:0,art:1});
+ assert.equal(logic.levelPerks(19).skillTurn,0);
+ assert.equal(logic.levelPerks(20).skillTurn,1);
+ assert.equal(logic.levelPerks(49).art,1);
+ assert.equal(logic.levelPerks(50).art,1.5);
+ assert(Math.abs(logic.levelPerks(50).atk-1.7602475)<1e-10);
+});
+
+test('Lv20でスキルの溜めが1減り、強化を重ねても最小値を下回らない',()=>{
+ for(const ch of chars){
+  const before=logic.growCharacter(ch,{lv:19,skillLv:1});
+  const after=logic.growCharacter(ch,{lv:20,skillLv:1});
+  assert.equal(after.skill.turns,Math.max(config.SKILL_TURN_MIN,before.skill.turns-1));
+  assert.equal(logic.growCharacter(ch,{lv:50,skillLv:3}).skill.turns,Math.max(config.SKILL_TURN_MIN,ch.skill.turns-3));
+ }
+ const ch=plain(chars[0]);ch.skill.turns=2;
+ assert.equal(logic.growCharacter(ch,{lv:20,skillLv:3}).skill.turns,config.SKILL_TURN_MIN);
+});
+
+test('連鎖技は連鎖数・習得Lv・消した属性・同段階の消去数で選ぶ',()=>{
+ const party=[{attr:0,lv:50,artBoost:1.5},{attr:1,lv:15},{attr:2,lv:35}];
+ const g=n=>({cells:Array.from({length:n},(_,i)=>[0,i])});
+ const colors=[[g(3)],[g(6)],[],[],[],[],[]];
+ const frozen=deepFreeze(party), before=JSON.stringify({party,colors});
+ assert.equal(logic.pickArt(frozen,colors,2),null);
+ assert.equal(logic.pickArt([{attr:0,lv:4}],colors,10),null);
+ assert.equal(logic.pickArt([{attr:0,lv:14}],colors,10).tier,1);
+ assert.equal(logic.pickArt(frozen,colors,5).member,1,'同段階なら多く消した蒼');
+ const top=logic.pickArt(frozen,colors,10);
+ assert.equal(top.member,0);assert.equal(top.tier,4);assert.equal(top.mult,9);
+ assert.equal(logic.pickArt([{attr:2,lv:50}],colors,10),null,'消していない属性は選ばない');
+ for(const [lv,chain,tier] of [[5,3,1],[15,5,2],[25,7,3],[35,10,4]]){
+  assert.equal(logic.pickArt([{attr:0,lv}],colors,chain).tier,tier);
+  assert.equal(logic.pickArt([{attr:0,lv}],colors,chain-1)?.tier||0,tier-1);
+ }
+ assert.equal(JSON.stringify({party,colors}),before,'選択で入力を変えない');
+});
+
+function artTurn(enemy={},lv=5){
+ const initial=game({board:tenGroups(),party:plain(logic.makeParty([chars[0]],{akane:{lv,exp:0,skillLv:1}})),rules:{...plain(config),MAX_WAVES:3},earnedExp:0});
+ Object.assign(initial.enemies[0],{atk:0,cd:99,turn:99},enemy);
+ return logic.resolveTurn(deepFreeze(initial),{}, {board:()=>0,enemy:()=>.5});
+}
+test('連鎖技は通常攻撃の前に出て、hits全件が累計ダメージに入る',()=>{
+ const result=artTurn(),art=result.events.find(e=>e.t==='art');
+ assert(art);assert.equal(art.chains,3);assert.equal(art.tier,1);
+ assert(result.events.indexOf(art)<result.events.findIndex(e=>e.t==='attack'));
+ const hits=result.events.filter(e=>['art','attack'].includes(e.t)).flatMap(e=>e.hits);
+ assert.equal(result.next.stats.totalDmg,hits.reduce((sum,h)=>sum+h.dmg,0));
+ assert(art.hits[0].dmg>0);
+ assert.equal(artTurn({},4).events.some(e=>e.t==='art'),false);
+});
+test('連鎖技の撃破経験値は一度だけ加算し、上限・吸収・根性も通常攻撃と同じ',()=>{
+ const killed=artTurn({hp:1,maxHp:4000});
+ assert.equal(killed.events.find(e=>e.t==='art').hits[0].hp,0);
+ assert.equal(killed.next.earnedExp,200);
+ assert.equal(killed.events.some(e=>e.t==='attack'),false);
+ const again=logic.resolveTurn(killed.next,{}, {board:()=>0,enemy:()=>.5});assert.equal(again.next.earnedExp,200);
+ const capped=artTurn({statuses:{damageCap:{limit:100,turns:null}}});
+ assert.equal(capped.events.find(e=>e.t==='art').hits[0].dmg,100);
+ const absorbed=artTurn({hp:500000,maxHp:1000000,statuses:{absorb:{attr:0,turns:3}}});
+ const h=absorbed.events.find(e=>e.t==='art').hits[0];assert.equal(h.absorbed,true);assert.equal(h.dmg,0);assert(h.hp>500000);
+ const endured=artTurn({hp:100,maxHp:100,statuses:{endure:{from:.5,used:false,turns:null}}});
+ const e=endured.events.find(e=>e.t==='art').hits[0];assert.equal(e.endured,true);assert.equal(e.hp,1);
+ assert.equal(endured.next.earnedExp,5,'後続の通常攻撃で倒した分だけ');
+});
+
+test('ミュートは旧セーブでオフを補完し、オンを保存して再読込できる',()=>{
+ const old=plain(logic.createSave());delete old.settings.mute;
+ assert.equal(logic.normalizeSave(old).settings.mute,false);
+ old.settings.mute=true;
+ assert.equal(logic.parseSave(JSON.stringify(old)).settings.mute,true);
 });

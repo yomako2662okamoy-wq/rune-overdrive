@@ -125,16 +125,37 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
 .stats dd{ margin:0; font-weight:700; font-variant-numeric:tabular-nums; text-align:right; }
 .new-best{ color:var(--gold); font-size:.88rem; margin:.8rem 0 0; font-weight:700; }
 
+#muteBtn .ico-off, #muteBtn.muted .ico-on{ display:none; }
+#muteBtn.muted .ico-off{ display:block; }
+.toast{ position:fixed; left:50%; bottom:calc(env(safe-area-inset-bottom, 0px) + 24px); transform:translate(-50%, 8px); z-index:40; padding:.55rem 1rem; color:var(--ink); background:rgba(22,18,42,.94); border:1px solid var(--rule); font-size:.9rem; opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; }
+.toast.show{ opacity:1; transform:translate(-50%, 0); }
 .menu-btn{ --c:#16122A; --cut:9px; position:absolute; top:8px; right:calc(max(0px, (100% - 520px) / 2) + 10px); width:44px; height:44px; color:var(--gold); cursor:pointer; z-index:10; display:grid; place-items:center; padding:0; }
 #rotate{ background:var(--bg); z-index:30; justify-content:center; text-align:center; font-weight:700; font-size:1.1rem; }
 /* 演出見本（デバッグ）：画面上部に横スクロールのボタンの帯を重ねる */
-.fx-strip{ position:absolute; z-index:11; top:6px; left:calc(max(0px, (100% - 520px) / 2) + 8px); right:calc(max(0px, (100% - 520px) / 2) + 114px);
+.fx-strip{ position:absolute; z-index:11; top:6px; left:calc(max(0px, (100% - 520px) / 2) + 8px); right:calc(max(0px, (100% - 520px) / 2) + 164px);
   display:flex; gap:.35rem; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
 .fx-strip::-webkit-scrollbar{ display:none; }
 .fx-strip .btn{ flex:0 0 auto; min-height:44px; font-size:.78rem; padding:.45rem .7rem; --c:#1E1838; }
 .fx-strip .btn.primary{ --c:#E8C373; }
 .save-text{width:100%;min-height:144px;margin:.5rem 0 1rem;padding:.7rem;color:var(--ink);background:var(--panel-2);border:1px solid var(--rule);font:14px/1.5 monospace;user-select:text;}
 
+/* 結果画面：レベルが上がっている仲間を大きく出す帯（スキルのカットインと同じ、顔〜胸の絵） */
+.res-hero{position:relative;display:flex;align-items:center;gap:.9rem;height:9.5rem;margin:.2rem 0 .7rem;padding-right:.9rem;overflow:hidden;text-align:left;background:#120E22;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.res-hero::before{content:"";position:absolute;inset:0 -10% 0 30%;background:linear-gradient(90deg,var(--c),transparent);opacity:.45;transform:skewX(-14deg);transition:background .3s}
+.res-hero canvas{position:relative;flex:0 0 auto;height:100%;width:auto;transform-origin:50% 100%;filter:drop-shadow(0 0 10px rgba(0,0,0,.6))}
+.res-hero .hero-text{position:relative;min-width:0}
+.res-hero .hero-text small{display:block;color:var(--ink-2);font-size:.75rem}
+.res-hero .hero-text strong{display:block;font-size:1.45rem;line-height:1.2}
+.res-hero .hero-lv{display:block;font-weight:700;font-variant-numeric:tabular-nums;color:var(--gold)}
+.res-hero .hero-badge{display:inline-block;margin-top:.35rem;padding:.12rem .55rem;font-weight:700;font-size:.85rem;color:#1A1205;background:linear-gradient(180deg,#FFF3C4,#E8C373);visibility:hidden}
+.res-hero.lvup .hero-badge{visibility:visible}
+.res-hero .hero-badge.long{font-size:.74rem}
+.res-hero.pop canvas{animation:hero-pop .45s ease-out}
+.res-hero.pop .hero-badge{animation:badge-pop .5s ease-out both}
+@keyframes hero-pop{0%{transform:scale(1)}35%{transform:scale(1.08);filter:brightness(1.45) drop-shadow(0 0 16px #FFE3A0)}100%{transform:scale(1)}}
+@keyframes badge-pop{0%{transform:scale(.4)}55%{transform:scale(1.15)}100%{transform:scale(1)}}
+.reward-member .emblem,.join-card .emblem{width:2.4rem;max-width:2.4rem}
+.join-card .emblem{flex:0 0 auto;margin:0}
 .reward-member{display:grid;grid-template-columns:2.4rem 1fr;gap:.8rem;text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--rule);position:relative;overflow:hidden}
 .reward-member .chip{grid-row:auto}
 .reward-member small{color:var(--ink-2);font-size:.75rem}
@@ -145,7 +166,7 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
 #resRewards{margin-top:.8rem}
 .level-up::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,227,160,.25),transparent);animation:reward-pillar .5s ease-out both;pointer-events:none}
 @keyframes reward-pillar{from{transform:scaleX(.1);opacity:1}to{transform:scaleX(1);opacity:0}}
-@media(prefers-reduced-motion:reduce){.level-up::after{animation:none}.exp-track span{transition:none}}
+@media(prefers-reduced-motion:reduce){.level-up::after{animation:none}.exp-track span{transition:none}.res-hero.pop canvas,.res-hero.pop .hero-badge{animation:none}}
 
 .hub{background:rgba(11,9,22,.97)}
 .hub .col{margin:0;flex:0 0 auto}
@@ -156,6 +177,14 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
 .emblem{display:block;width:100%;max-width:72px;aspect-ratio:1;object-fit:contain;margin:auto}
 .emblem.large{width:min(62vw,240px);max-width:240px}
 .emblem.face-only{object-fit:cover;border:3px solid #D4A24A;box-shadow:0 0 0 1px rgba(255,240,196,.5),inset 0 -12px 16px -8px var(--c);clip-path:polygon(24% 0,76% 0,100% 24%,100% 76%,76% 100%,24% 100%,0 76%,0 24%)}
+.growth{list-style:none;margin:.3rem 0 0;padding:0;text-align:left}
+.growth li{display:grid;grid-template-columns:3.1rem 1fr auto;gap:.6rem;align-items:center;padding:.45rem .1rem;border-bottom:1px solid var(--rule);color:var(--ink-2)}
+.growth li.got{color:var(--ink)}
+.growth .g-lv{font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.growth li.got .g-lv{color:var(--gold)}
+.growth small{display:block;font-size:.72rem;color:var(--ink-2)}
+.growth .g-state{font-size:.72rem;white-space:nowrap}
+.growth li.got .g-state{color:var(--gold)}
 .portrait-art{display:block;margin:auto;width:auto;max-width:min(70vw,260px);max-height:46vh;object-fit:contain;filter:drop-shadow(0 0 18px rgba(255,227,160,.18))}
 .team-tabs{display:flex;gap:.4rem}
 .team-tab{flex:1;padding:.8rem .3rem}
@@ -176,6 +205,11 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
 <body>
 <div id="app">
   <canvas id="game" role="img" aria-label="ゲーム画面"></canvas>
+  <button id="muteBtn" class="menu-btn hidden" style="right:calc(max(0px, (100% - 520px) / 2) + 110px)" type="button" aria-label="音をミュートする" aria-pressed="false">
+    <svg class="ico-on" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 6.5h3l4-3.5v12l-4-3.5H2z" fill="currentColor"/><path d="M11.5 6.2a4 4 0 0 1 0 5.6M13.6 4.1a7 7 0 0 1 0 9.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <svg class="ico-off" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M2 6.5h3l4-3.5v12l-4-3.5H2z" fill="currentColor"/><path d="M11.5 6.5l5 5M16.5 6.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+  </button>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <button id="speedBtn" class="menu-btn hidden" style="right:calc(max(0px, (100% - 520px) / 2) + 60px)" type="button" aria-label="演出速度を切り替える">×1</button>
   <button id="menuBtn" class="menu-btn hidden" type="button" aria-label="メニュー">
     <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1" fill="currentColor"/><rect x="9.5" y="2" width="3.5" height="12" rx="1" fill="currentColor"/></svg>
@@ -267,6 +301,20 @@ const CONFIG = {
   // 1回目の落下でこの確率、そのあとは1回ごとに DECAY を掛ける（1.0なら下げない）。1ターンに MAX 回まで
   // 目安：普通のターンで10連鎖が約25回に1回、OD中は約5回に1回（ボットで測定）
   CHAIN_ASSIST: 0.78, CHAIN_ASSIST_OD: 0.8, CHAIN_ASSIST_DECAY: 1.0, CHAIN_ASSIST_DECAY_OD: 1.0, CHAIN_ASSIST_MAX: 12, CHAIN_ASSIST_MAX_OD: 15,
+  // レベルで覚える連鎖技（docs/design-growth.md）。chain 以上の連鎖で、lv 以上の仲間が出す。
+  // mult はその仲間の通常の一撃に対する倍率、all は敵全体
+  ARTS: [
+    { tier: 1, lv: 5, chain: 3, label: "強攻撃", mult: 0.6, all: false },
+    { tier: 2, lv: 15, chain: 5, label: "必殺技", mult: 2, all: false },
+    { tier: 3, lv: 25, chain: 7, label: "超必殺", mult: 3, all: true },
+    { tier: 4, lv: 35, chain: 10, label: "奥義", mult: 6, all: true },
+  ],
+  // レベルでの能力アップ。atk は攻撃の倍率（重ねがけ）、skillTurn はスキルの溜めを減らすターン数、art は奥義の倍率
+  LV_PERKS: [
+    { lv: 10, atk: 1.1 }, { lv: 20, atk: 1.1, skillTurn: 1 }, { lv: 30, atk: 1.15 },
+    { lv: 40, atk: 1.15 }, { lv: 45, atk: 1.1 }, { lv: 50, art: 1.5 },
+  ],
+  ART_TIME: [0, 0.6, 1.1, 1.45, 1.6], ART_CUTIN: 1.0,
   LEADER_ATK: 2, LEADER_COMBO: 7, LEADER_EXTRA: 1.5,
   BOSS_ENRAGE_HP: 0.5, BOSS_ENRAGE_ATK: 1.3, BOSS_BIG_EVERY: 3, BOSS_BIG_MULT: 2.5,
   ENEMY_RAND_MIN: 0.9, ENEMY_RAND_SPREAD: 0.2, ENEMY_SEED_SALT: 0x9e3779b9, CORE_COUNT: 3,
@@ -383,6 +431,19 @@ const EXTRA_TIERS = [
   { min: CONFIG.COMBO_TIERS_EXTRA[2], label: "OVERLOAD", color: "#FFFFFF" },
 ];
 // セリフの下書き（docs/design-fx.md 付録A）。性格は仮。
+// 連鎖技の名前（強攻撃・必殺技・超必殺・奥義の順）
+const ART_NAMES = {
+  akane: ["紅閃", "紅蓮斬", "緋焔乱舞", "紅蓮天墜"],
+  mizuha: ["水鏡の刃", "蒼流穿", "瀑布・千鏡", "水天一刻"],
+  yomogi: ["葉っぱぺちん", "芽吹きの槌", "森羅の大樹", "千年樹・大芽吹き"],
+  ruka: ["光の矢", "天光の連矢", "流星の雨", "天穹・光弓"],
+  nocto: ["影縫い", "月蝕の鎌", "宵闇の帳", "永夜・月墜"],
+  kagura: ["祓いの火", "神火・一閃", "火焔神楽", "天照・大神火"],
+  shizuku: ["……ぽつり", "雨垂れの槍", "六彩の豪雨", "天泣・虹雫"],
+  tsubaki: ["盾撃ち", "椿落とし", "百花繚乱", "満開・椿姫"],
+  hikari: ["光速キック", "閃光ダッシュ", "スターライン", "最速・光速突破"],
+  crow: ["裂爪", "鴉落とし", "黒羽の嵐", "十夜・鴉葬"],
+};
 const LINES = {
   akane:   { skill: "燃え上がれ！", finish: ["まだまだ！", "これで終わり！"], pinch: "……ここからだよ", od: "全員、私に続いて！", win: "みんな、よくやった！" },
   mizuha:  { skill: "時よ、少しだけ", finish: ["流れは見えています", "静かに沈みなさい"], pinch: "落ち着いて。まだ間に合います", od: "水面が、満ちていく", win: "お疲れさまでした" },
@@ -456,7 +517,7 @@ DUNGEONS.push(
     [{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":24300,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[{"id":"attrChange","when":"every:3","attrs":[3,4]}]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":24300,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[]}],
     [{"kind":"golem","attr":1,"name":"蒼ゴーレム","hp":48600,"def":650,"atk":2800,"turn":3,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":1},{"id":"attrChange","when":"every:3"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":24300,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[]}],
     [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":27000,"def":350,"atk":2000,"turn":2,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":35000}]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":25650,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":25650,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"boss","attr":3,"name":"万華鏡の魔晶カレイド","hp":248400,"def":650,"atk":3100,"turn":1,"boss":true,"skills":[{"id":"damageCap","when":"preempt","limit":45000},{"id":"absorb","when":"turn:1","attr":3},{"id":"attrChange","when":"every:3"},{"id":"absorb","when":"every:5","attr":4}],"autoEnrage":false,"bigName":"スペクトル・レイ","variant":0,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"boss","attr":0,"name":"緋翼の剣鬼ヴァーミリオン","hp":248400,"def":650,"atk":3100,"turn":1,"boss":true,"skills":[{"id":"damageCap","when":"preempt","limit":45000},{"id":"absorb","when":"turn:1","attr":3},{"id":"attrChange","when":"every:3"},{"id":"absorb","when":"every:5","attr":4}],"autoEnrage":false,"bigName":"緋閃・断界","variant":0,"bigEvery":3,"bigMult":1.8}]
   ]},
   {"id":"d8","name":"終焉の玉座","hue":280,"desc":"すべての仕掛けを乗り越え、三形態の王へ","floors":[
     [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":18900,"def":350,"atk":1512,"turn":2,"boss":false,"skills":[{"id":"lock","when":"preempt"},{"id":"dark","when":"every:4"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":18000,"def":350,"atk":1440,"turn":2,"boss":false,"skills":[{"id":"poison","when":"turn:2"}]}],
@@ -464,7 +525,7 @@ DUNGEONS.push(
     [{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"comboAbsorb","when":"preempt","min":7}]},{"kind":"sentinel","attr":1,"name":"蒼センチネル","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":1}]}],
     [{"kind":"golem","attr":4,"name":"冥ゴーレム","hp":43200,"def":650,"atk":2376,"turn":3,"boss":false,"skills":[{"id":"endure","when":"preempt"},{"id":"attrChange","when":"every:3"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"poison","when":"preempt"}]}],
     [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":23400,"def":350,"atk":1656,"turn":2,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":40000}]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":22500,"def":350,"atk":1620,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":23400,"def":350,"atk":1656,"turn":2,"boss":false,"skills":[{"id":"lock","when":"turn:2"}]}],
-    [{"kind":"boss","attr":4,"name":"終焉の王オブシディアン","hp":216000,"def":650,"atk":2520,"turn":1,"boss":true,"skills":[{"id":"endure","when":"preempt"},{"id":"transform","when":"hp:50","to":{"form":2,"phaseName":"オブシディアン・第二形態","attr":0,"atk":2808,"turn":1,"bigEvery":3,"bigMult":1.8,"bigName":"崩壊の烈火"}},{"id":"transform","when":"hp:25","phase":2,"to":{"form":3,"phaseName":"オブシディアン・最終形態","attr":4,"atk":3024,"turn":1,"bigEvery":2,"bigMult":1.8,"bigName":"終焉の深淵"}},{"id":"lock","when":"every:3","phase":1},{"id":"dark","when":"every:3","phase":2},{"id":"poison","when":"every:4","phase":2},{"id":"comboAbsorb","when":"every:4","phase":3,"min":8},{"id":"absorb","when":"every:5","phase":3,"attr":4}],"autoEnrage":false,"bigName":"終焉の審判","variant":1,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"boss","attr":4,"name":"終焉の王オブシディアン","hp":216000,"def":650,"atk":2520,"turn":1,"boss":true,"skills":[{"id":"endure","when":"preempt"},{"id":"transform","when":"hp:50","to":{"form":2,"phaseName":"オブシディアン・深淵","attr":4,"atk":2808,"turn":1,"bigEvery":3,"bigMult":1.8,"bigName":"崩壊の烈火"}},{"id":"transform","when":"hp:25","phase":2,"to":{"form":3,"phaseName":"終焉神オブシディアン","attr":4,"atk":3024,"turn":1,"bigEvery":2,"bigMult":1.8,"bigName":"終焉の深淵"}},{"id":"lock","when":"every:3","phase":1},{"id":"dark","when":"every:3","phase":2},{"id":"poison","when":"every:4","phase":2},{"id":"comboAbsorb","when":"every:4","phase":3,"min":8},{"id":"absorb","when":"every:5","phase":3,"attr":4},{"id":"attrChange","when":"every:2","phase":3}],"autoEnrage":false,"bigName":"終焉の審判","variant":1,"bigEvery":3,"bigMult":1.8}]
   ]}
 );
 DUNGEONS.forEach((d,i)=>{d.recommendedLv=CONFIG.DUNGEON_LEVELS[i];d.starGoals=CONFIG.STAR_GOALS[i];});
@@ -818,6 +879,20 @@ function attackDamage(member, groups, context, enemy, rules = CONFIG) {
   const raw = Math.floor(base * attrMult(member.attr, enemy.attr, rules));
   return groups.some((g) => g.shape === "cross") ? raw : Math.max(1, raw - enemy.def);
 }
+// 連鎖技：その連鎖数とレベルで出せるいちばん強い技を、消した色の仲間から1人選ぶ（同じ強さなら、たくさん消した色）
+function pickArt(party, byColor, chains, rules = CONFIG) {
+  let best = null;
+  party.forEach((m, i) => {
+    const gs = byColor[m.attr];
+    if (!gs?.length) return;
+    const art = [...(rules.ARTS || [])].sort((a, b) => b.tier - a.tier).find((a) => chains >= a.chain && (m.lv || 1) >= a.lv);
+    if (!art) return;
+    const count = gs.reduce((sum, g) => sum + g.cells.length, 0);
+    if (!best || art.tier > best.tier || (art.tier === best.tier && count > best.count))
+      best = { tier: art.tier, label: art.label, all: !!art.all, member: i, count, mult: art.mult * (art.tier === 4 ? (m.artBoost || 1) : 1) };
+  });
+  return best;
+}
 function resolveTurn(game, input = {}, random) {
   const next = cloneData(game);
   if (input.board) next.board = cloneBoard(input.board);
@@ -825,7 +900,7 @@ function resolveTurn(game, input = {}, random) {
   const rules = { ...CONFIG, ...next.rules, ROWS: next.board.length, COLS: next.board[0].length };
   const ev = [];
   let b = cloneBoard(next.board);
-  let combos = 0;
+  let combos = 0, chains = 0;
   const byColor = [[], [], [], [], [], [], []];
   const odWas = next.od.active;
   const leader = next.party[0]?.leader || LEADER, bonuses = leaderStats(leader, rules);
@@ -840,6 +915,7 @@ function resolveTurn(game, input = {}, random) {
   for (let guard = 0; guard < rules.MAX_WAVES; guard++) {
     const groups = findGroups(b);
     if (!groups.length) break;
+    chains++;
     const cores = [];
     for (const g of groups) {
       combos++;
@@ -906,6 +982,29 @@ function resolveTurn(game, input = {}, random) {
     const dmg = poisonDamage(poisonCount,next.teamMax,rules);
     next.teamHp = Math.max(0,next.teamHp-dmg);
     ev.push({t:"poison",count:poisonCount,dmg,hp:next.teamHp});
+  }
+
+  // 連鎖技（レベルで覚える）。通常の攻撃より先に出す
+  const art = combos > 0 ? pickArt(next.party, byColor, chains, rules) : null;
+  if (art && next.teamHp > 0 && next.enemies.some((e) => e.hp > 0)) {
+    const mem = next.party[art.member], gs = byColor[mem.attr], res = resonance.includes(mem.attr);
+    const targets = art.all ? next.enemies.map((e, j) => j).filter((j) => next.enemies[j].hp > 0) : [pickTarget(next)];
+    const hits = [];
+    for (const j of targets) {
+      const e = next.enemies[j], am = attrMult(mem.attr, e.attr, rules);
+      const multiplier = leaderMult({ leader, combos, byColor, attr: mem.attr, plus: plusTotal, od: odWas });
+      const dmg = Math.floor(attackDamage(mem, gs, { combos, leaderMult: multiplier, od: odWas, resonance: res, prism }, e, rules) * art.mult);
+      const applied = hitEnemy(e, dmg, { attr: mem.attr, combos }, rules);
+      Object.assign(e, applied.enemy);
+      if (e.hp === 0) next.earnedExp = (next.earnedExp || 0) + Math.floor(e.maxHp / rules.EXP_DIV);
+      next.stats.totalDmg += applied.hit.dmg;
+      hits.push({ e: j, ...applied.hit, weak: am > 1, resist: am < 1 });
+    }
+    ev.push({ t: "art", member: art.member, attr: mem.attr, tier: art.tier, label: art.label, chains, hits });
+    for (const hit of hits) {
+      if (hit.absorbed) ev.push({ t: "absorbed", e: hit.e, amount: hit.amount, hp: hit.hp });
+      if (hit.endured) ev.push({ t: "endured", e: hit.e, statuses: cloneData(next.enemies[hit.e].statuses) });
+    }
   }
 
   // 攻撃
@@ -1042,12 +1141,19 @@ function reconcileJoins(data) {
   return joined;
 }
 function expNeeded(level, rules = CONFIG) { return level >= rules.LV_MAX ? 0 : Math.round(rules.EXP_BASE * Math.pow(level, rules.EXP_POW)); }
+// レベルで付く能力アップ（LV_PERKS）をまとめる
+function levelPerks(lv, rules = CONFIG) {
+  const perk = { atk: 1, skillTurn: 0, art: 1 };
+  for (const k of rules.LV_PERKS || []) if (lv >= k.lv) { perk.atk *= k.atk || 1; perk.skillTurn += k.skillTurn || 0; perk.art *= k.art || 1; }
+  return perk;
+}
 function growCharacter(ch, progress = {}, rules = CONFIG) {
   const lv = saveInt(progress.lv, 1, 1, rules.LV_MAX), skillLv = saveInt(progress.skillLv, 1, 1, rules.SKILL_LV_MAX);
-  const member = cloneData(ch), factor = 1 + rules.STAT_GROWTH * (lv - 1);
-  for (const stat of ["hp", "atk", "rcv"]) member[stat] = Math.round(ch[stat] * factor);
+  const member = cloneData(ch), factor = 1 + rules.STAT_GROWTH * (lv - 1), perk = levelPerks(lv, rules);
+  for (const stat of ["hp", "atk", "rcv"]) member[stat] = Math.round(ch[stat] * factor * (stat === "atk" ? perk.atk : 1));
   member.lv = lv; member.exp = saveInt(progress.exp); member.skillLv = skillLv;
-  member.skill.turns = Math.max(rules.SKILL_TURN_MIN, ch.skill.turns - (skillLv - 1));
+  member.skill.turns = Math.max(rules.SKILL_TURN_MIN, ch.skill.turns - (skillLv - 1) - perk.skillTurn);
+  member.artBoost = perk.art;
   return member;
 }
 function gainExperience(progress, amount, rules = CONFIG) {
@@ -1175,7 +1281,7 @@ function saveInt(value, fallback = 0, min = 0, max = Number.MAX_SAFE_INTEGER) {
 function createSave(motion = false) {
   return {
     version: CONFIG.SAVE_VERSION,
-    settings: { speed: "normal", shake: !motion, flash: motion, sfx: true, bgm: true, board: "7x6", skillConfirm: true, dragLift: "small", hpNumbers: false, barks: true },
+    settings: { speed: "normal", shake: !motion, flash: motion, sfx: true, bgm: true, mute: false, board: "7x6", skillConfirm: true, dragLift: "small", hpNumbers: false, barks: true },
     roster: Object.fromEntries(STARTER_IDS.map((id) => [id, { lv: 1, exp: 0, skillLv: 1 }])),
     teams: [{ leader: "akane", members: [...STARTER_IDS] }], teamIndex: 0, crystal: 0, dungeons: {},
     tower: { bestFloor: 0, rewarded: [] }, daily: { date: "", best: 0, rewarded: false },
@@ -1187,7 +1293,7 @@ function saveSettings(input, defaults) {
   if (!isRecord(input)) return result;
   const choices = { speed: ["normal", "fast", "fastest"], board: ["7x6", "6x5"], dragLift: ["small", "medium", "large"] };
   for (const [key, values] of Object.entries(choices)) if (values.includes(input[key])) result[key] = input[key];
-  for (const key of ["shake", "flash", "sfx", "bgm", "skillConfirm", "hpNumbers", "barks"]) if (typeof input[key] === "boolean") result[key] = input[key];
+  for (const key of ["shake", "flash", "sfx", "bgm", "mute", "skillConfirm", "hpNumbers", "barks"]) if (typeof input[key] === "boolean") result[key] = input[key];
   return result;
 }
 function migrateSave(legacy, motion = false) {
@@ -1254,7 +1360,7 @@ function normalizeSave(input, motion = false) {
 function parseSave(text, motion = false) { return normalizeSave(JSON.parse(text), motion); }
 
 const LOGIC = { evaluateStars, skillDue, chooseRuneCells, resolveEnemySkills, hitEnemy, ageDark, applyRuneCondition, poisonDamage, runeFlags, canSwap, swapPath, leaderStats, leaderMult, prepareTeam, setTeam, reconcileJoins, expNeeded, growCharacter, gainExperience, upgradeSkill, resolveRewards, createSave, migrateSave, normalizeSave, parseSave, makeBoard, cloneBoard, findGroups, shapeOf, groupMult, fall, tierOf, attrMult,
-  attackDamage, resolveTurn, resolveSkill, makeEnemies, makeParty, mulberry32, makeRngs, cloneData };
+  attackDamage, resolveTurn, resolveSkill, makeEnemies, makeParty, mulberry32, makeRngs, cloneData, pickArt, levelPerks };
 // ===== LOGIC END =====
 
 // ===== SAVE =====
@@ -1449,6 +1555,11 @@ function estimateDuration(events) {
       pendingReal = Math.max(pendingReal, killed ? CONFIG.HITSTOP + CONFIG.KILL_SLOW / 2 : huge ? CONFIG.LARGE_HITSTOP : 0);
       add(CONFIG.ATTACK_GAP);
     } else if (e.t === "enrage") { settleTime(); add(CONFIG.ENRAGE_HOLD); }
+    else if (e.t === "art") {
+      settleTime();
+      add(CONFIG.ART_TIME[e.tier] || 0.6, e.tier === 4 && settings.speed !== "fastest" ? CONFIG.ART_CUTIN / speed : 0, 5);
+      if (e.hits.some((hit) => hit.killed)) add(CONFIG.KILL_LEAD + CONFIG.KILL_HOLD + (e.hits.some((hit) => hit.killed && state.enemies[hit.e]?.boss) ? CONFIG.BOSS_KILL_HOLD : 0), CONFIG.HITSTOP + CONFIG.KILL_SLOW / 2, 2);
+    }
     else if (e.t === "enemyAtk") { settleTime(); add(CONFIG.ENEMY_LEAD + CONFIG.ENEMY_WIND + enemyTravel(state.enemies[e.e]) + CONFIG.ENEMY_HOLD + (e.big ? CONFIG.ENEMY_BIG : 0), 0, e.big ? 5 : 4); }
     else if (e.t === "counters") settleTime();
   });
@@ -1512,6 +1623,7 @@ async function playEvents(ev) {
     else if (e.t === "boardStatus") { view.board=viewFromBoard(e.board);await waitTurn(CONFIG.BOARD_STATUS_TIME); }
     else if (e.t === "attack") { for (const hit of e.hits) damageTotals.set(hit.e,(damageTotals.get(hit.e)||0)+hit.dmg); fxAttack(e); await waitTurn(CONFIG.ATTACK_GAP); }
     else if (e.t === "enrage") { await settle(); await fxEnrage(e); }
+    else if (e.t === "art") { for (const hit of e.hits) damageTotals.set(hit.e,(damageTotals.get(hit.e)||0)+hit.dmg); await settle(); await fxArt(e); }
     else if (e.t === "enemyAtk") { await settle(); await waitTurn(CONFIG.ENEMY_LEAD); await fxEnemyAtk(e); }
     else if (e.t === "counters") { await settle(); e.cds.forEach((cd, j) => { if (state.enemies[j]) state.enemies[j].v.cd = cd; }); }
   }
@@ -1704,7 +1816,10 @@ async function fxEnemySkill(e) {
   if (e.id === "lock") Sound.sfx.lock();
   else Sound.sfx.convert();
   if (e.id === "dark") ov.hazard={kind:"mist",t0:clock.game,dur:duration};
-  if (e.attr !== v.attr) {v.attr=e.attr;buildEnemySprites();}
+  // 形態が変わったら、その形態の絵に差し替える（白く光らせてから切り替わって見える）
+  const formChanged = (e.form || 1) !== (v.form || 1);
+  if (formChanged) { v.form = e.form || 1; v.flash = 1; flashScreen(0.6); }
+  if (e.attr !== v.attr || formChanged) {v.attr=e.attr;buildEnemySprites();}
   v.phaseName=e.phaseName;v.cd=e.cd;
   if (e.id === "transform") {
     ov.hazard={kind:"crack",t0:clock.game,dur:duration,e:e.e};
@@ -1870,6 +1985,47 @@ async function fxFinisher(e, lastKill) {
   camBack();
 }
 
+// 連鎖技：強攻撃は大きな一撃、必殺技は帯と寄り、超必殺は敵全体、奥義はカットインつき
+function artName(member, tier) { return (ART_NAMES[member?.id] || [])[tier - 1] || CONFIG.ARTS.find((a) => a.tier === tier)?.label || ""; }
+async function fxArt(e) {
+  const m = state.party[e.member];
+  if (!m || !e.hits.length) return;
+  const name = artName(m, e.tier), R = RUNES[e.attr], ip = L.icons[e.member] || L.icons[0];
+  const attack = { member: e.member, attr: e.attr, hits: e.hits, big: true };
+  const time = CONFIG.ART_TIME[e.tier] || 0.6;
+  if (e.tier === 1) {
+    view.iconBump[e.member] = 1;
+    floatText(ip.x, ip.y - L.icon * 0.75, name, { size: L.cell * 0.3, color: R.light, rise: 0.4, dur: 0.8 });
+    Sound.sfx.charge();
+    await waitTurn(0.15);
+    fxAttack(attack);
+    await waitTurn(time - 0.15);
+    return;
+  }
+  const alive = e.hits.map((h) => state.enemies[h.e]).filter(Boolean);
+  const cx = alive.reduce((s, en) => s + en.v.x, 0) / alive.length, cy = alive.reduce((s, en) => s + en.v.y, 0) / alive.length;
+  tween(view, "dim", e.tier >= 3 ? 0.75 : 0.6, 0.2);
+  if (e.tier === 4 && settings.speed !== "fastest") {
+    Sound.sfx.skill(e.attr);
+    const dur = CONFIG.ART_CUTIN / SPEED[settings.speed];
+    ov.cutin = { member: e.member, t0: clock.real, dur, title: name, sub: e.label };
+    clock.stop = true; await waitReal(dur); clock.stop = false; ov.cutin = null;
+  } else {
+    miniCutIn(e.member);
+  }
+  ov.banner = { text: name, sub: e.label + "　" + m.name, t0: clock.game, dur: time, rainbow: e.tier === 4, top: true };
+  bark(e.member, "finish", 1);
+  camTo(cx, cy, e.hits.length > 1 ? CONFIG.CAM_FINISH_ZOOM : CONFIG.CAM_KILL_ZOOM, CONFIG.CAM_TIME + 0.15);
+  Sound.sfx.charge();
+  if (e.tier >= 3) { view.frameGlow = Math.max(view.frameGlow || 0, 1); spawnParticles(ip.x, ip.y, e.attr, 30, { spd: [80, 320], up: 120 }); }
+  await waitTurn(0.35);
+  if (e.tier >= 3) { flashScreen(e.tier === 4 ? 0.55 : 0.35); shake(e.tier === 4 ? 14 : 10); Sound.sfx.tierUp(2); }
+  if (e.tier === 4) for (const en of alive) pillarStrike(en.v.x, en.v.y + en.v.size * 0.3, R.light, e.attr, L.cell * 1.1, 0);
+  fxAttack(attack, { finisher: true });
+  await settle();
+  tween(view, "dim", 0, 0.3); camBack();
+  await waitTurn(Math.max(0.2, time - 0.35 - CONFIG.CAM_TIME));
+}
 // セリフ。1ターンに1つまで（スキル・OD・勝利は force で別枠）
 function bark(i, kind, rate = 1, force = false) {
   if (!settings.barks || scene !== "battle") return false;
@@ -2372,16 +2528,41 @@ const ASSET_MANIFEST_FALLBACK = {
     wisp: { file: "assets/mob_flower_gray.webp", tint: true, anchor: [0.5, 0.963], eye: [0.554, 0.301], scale: 1.05 },
     golem: { file: "assets/mob_flower_gray.webp", tint: true, anchor: [0.5, 0.963], eye: [0.554, 0.301], scale: 1.3 },
   },
-  bosses: { d1: { file: "assets/boss_d1.webp", anchor: [0.5, 0.947], eye: [0.476, 0.234], scale: 1.0 } },
-  chars: { akane: { full: "assets/akane_full.webp", face: "assets/akane_face.webp", cutin: [0.289, 0.063, 0.406, 0.199] } },
+  // ボスの絵。形態が変わるボスは「id_f形態番号」で、その形態の絵に切り替わる（なければ id の絵のまま）
+  bosses: {
+    d1: { file: "assets/boss_d1.webp", anchor: [0.5, 0.947], eye: [0.476, 0.234], scale: 1.0 },
+    d2: { file: "assets/boss_d2.webp", anchor: [0.5, 0.981], eye: [0.462, 0.337], scale: 1.05 },
+    d3: { file: "assets/boss_d3.webp", anchor: [0.5, 0.981], eye: [0.65, 0.432], scale: 1.05, glow: false },
+    d4: { file: "assets/boss_d4.webp", anchor: [0.5, 0.961], eye: [0.431, 0.448], scale: 1.05 },
+    d5: { file: "assets/boss_d5.webp", anchor: [0.5, 0.981], eye: [0.529, 0.179], scale: 1.1 },
+    d6: { file: "assets/boss_d6.webp", anchor: [0.5, 0.981], eye: [0.411, 0.293], scale: 1.1, glow: false },
+    d7: { file: "assets/boss_d7.webp", anchor: [0.5, 0.981], eye: [0.395, 0.409], scale: 1.1, glow: false },
+    d8: { file: "assets/boss_d8_f1.webp", anchor: [0.5, 0.981], eye: [0.502, 0.191], scale: 1.1, glow: false },
+    d8_f2: { file: "assets/boss_d8_f2.webp", anchor: [0.5, 0.981], eye: [0.545, 0.288], scale: 1.15, glow: false },
+    d8_f3: { file: "assets/boss_d8_f3.webp", anchor: [0.5, 0.981], eye: [0.497, 0.536], scale: 1.2, glow: false },
+  },
+  chars: {
+    akane: { full: "assets/akane_full.webp", face: "assets/akane_face.webp", cutin: [0.289, 0.063, 0.406, 0.199] },
+    mizuha: { full: "assets/mizuha_full.webp", face: "assets/mizuha_face.webp", cutin: [0.299, 0.163, 0.38, 0.186] },
+    yomogi: { full: "assets/yomogi_full.webp", face: "assets/yomogi_face.webp", cutin: [0.378, 0.209, 0.39, 0.191] },
+    ruka: { full: "assets/ruka_full.webp", face: "assets/ruka_face.webp", cutin: [0.307, 0.196, 0.369, 0.181] },
+    nocto: { full: "assets/nocto_full.webp", face: "assets/nocto_face.webp", cutin: [0.244, 0.102, 0.387, 0.19] },
+    kagura: { full: "assets/kagura_full.webp", face: "assets/kagura_face.webp", cutin: [0.274, 0.132, 0.369, 0.181] },
+    shizuku: { full: "assets/shizuku_full.webp", face: "assets/shizuku_face.webp", cutin: [0.316, 0.179, 0.376, 0.184] },
+    tsubaki: { full: "assets/tsubaki_full.webp", face: "assets/tsubaki_face.webp", cutin: [0.167, 0.047, 0.374, 0.184] },
+    hikari: { full: "assets/hikari_full.webp", face: "assets/hikari_face.webp", cutin: [0.258, 0.152, 0.369, 0.181] },
+    crow: { full: "assets/crow_full.webp", face: "assets/crow_face.webp", cutin: [0.284, 0.143, 0.378, 0.185] },
+  },
 };
 const assets = { manifest: null, images: new Map(), done: false };
 function assetImage(path) { return path ? assets.images.get(path) || null : null; }
 function enemyAsset(e) {
   const m = assets.manifest;
   if (!m) return null;
-  const entry = e.boss ? m.bosses?.[state.dungeon?.assetId || state.dungeon?.id] : m.enemies?.[e.kind];
-  return entry && assetImage(entry.file) ? entry : null;
+  if (!e.boss) { const entry = m.enemies?.[e.kind]; return entry && assetImage(entry.file) ? entry : null; }
+  const key = state.dungeon?.assetId || state.dungeon?.id, form = e.v?.form || e.form || 1;
+  for (const entry of [form > 1 ? m.bosses?.[key + "_f" + form] : null, m.bosses?.[key]]) if (entry && assetImage(entry.file)) return entry;
+  return null;
 }
 function charAsset(id) {
   const entry = assets.manifest?.chars?.[id];
@@ -2444,7 +2625,7 @@ function makeImageEnemy(entry, attr, px, isBoss) {
     h.fillStyle = "#05030C"; h.fillRect(0, 0, px, px);
   }
   const eye = entry.eye ? { x: entry.eye[0] - 0.5, y: entry.eye[1] + dy / px - 0.5 } : null;
-  return { img: cv, sil, eye };
+  return { img: cv, sil, eye, glow: entry.glow !== false };
 }
 // 目の位置（攻撃の出どころ）。絵の敵は manifest の eye、コード描画の敵は種類ごとの決まった位置
 function eyePos(e, x, y, s) {
@@ -2865,7 +3046,7 @@ function buildEnemySprites() {
     const key = (entry ? "img:" + entry.file + ":" + (entry.tint ? attr : "") : e.kind + "-" + attr + "-" + (e.variant || 0)) + "-" + px;
     if (!enemySpr.has(key)) enemySpr.set(key, entry ? makeImageEnemy(entry, attr, px, e.boss) : makeEnemy(e.kind, attr, px, e.variant || 0));
     const s = enemySpr.get(key);
-    e.v.spr = s.img; e.v.silSpr = s.sil; e.v.eye = s.eye || null; e.v.sprK = k; e.v.art = !!entry;
+    e.v.spr = s.img; e.v.silSpr = s.sil; e.v.eye = s.eye || null; e.v.sprK = k; e.v.art = !!entry; e.v.eyeGlow = s.glow !== false;
   }
 }
 function buildCircle(hue) {
@@ -3219,9 +3400,9 @@ function drawEnemies() {
     if (v.crack > 0 && v.cracks && !(v.split > 0)) drawCracks(v, s, RUNES[v.attr ?? e.attr]);
     if (silA > 0.01 && v.silSpr) { ctx.globalAlpha = v.alpha * silA; ctx.drawImage(v.silSpr, -s / 2, -s / 2, s, s); }
     ctx.restore();
-    // センチネルは目に光をためる（予告と攻撃の溜め）。絵の敵は、いつも目がうっすら光る
+    // センチネルは目に光をためる（予告と攻撃の溜め）。絵の敵は、いつも目がうっすら光る（顔のある絵は glow:false で光らせない）
     const eye = eyePos(e, x, y, s);
-    if (v.art && v.eye && !v.dying && silA < 0.5) {
+    if (v.art && v.eye && v.eyeGlow && !v.dying && silA < 0.5) {
       glowAt(v.attr ?? e.attr, eye.x, eye.y, s * 0.16, v.alpha * (0.55 + 0.25 * Math.sin(clock.real * 3 + i)));
       glowAt(G_WHITE, eye.x, eye.y, s * 0.05, v.alpha * 0.8);
       ctx.globalCompositeOperation = "source-over";
@@ -3760,10 +3941,11 @@ function drawOverlays() {
     }
     const tx = pw ? ix - cell * 0.35 + pw + cell * 0.15 : ix + isz + cell * 0.25;
     ctx.textAlign = "left"; ctx.textBaseline = "middle";
-    label(m.name, tx, -bh * 0.2, cell * 0.24, "rgba(255,255,255,0.9)", "left");
-    ctx.font = fitSize(m.skill.name, L.gw * 0.5, cell * 0.55) + "px " + FONT_DISPLAY;
+    const title = c.title || m.skill.name;
+    label(c.sub ? c.sub + "　" + m.name : m.name, tx, -bh * 0.2, cell * 0.24, "rgba(255,255,255,0.9)", "left");
+    ctx.font = fitSize(title, L.gw * 0.5, cell * 0.55) + "px " + FONT_DISPLAY;
     ctx.lineJoin = "round"; ctx.lineWidth = cell * 0.08; ctx.strokeStyle = "rgba(10,6,28,0.85)";
-    ctx.strokeText(m.skill.name, tx, bh * 0.12); ctx.fillStyle = "#FFFFFF"; ctx.fillText(m.skill.name, tx, bh * 0.12);
+    ctx.strokeText(title, tx, bh * 0.12); ctx.fillStyle = "#FFFFFF"; ctx.fillText(title, tx, bh * 0.12);
     ctx.restore();
   }
   if (ov.warn) {
@@ -3793,7 +3975,8 @@ function drawOverlays() {
     if (q >= 1) ov.banner = null;
     else {
       const a = q < 0.15 ? q / 0.15 : q > 0.75 ? (1 - q) / 0.25 : 1;
-      const y = L.eCy - L.eH * 0.05, bh = cell * 1.25;
+      // top：連鎖技の帯は、当たるところを隠さないよう敵の上の端に出す
+      const bh = cell * 1.25, y = b.top ? L.eTop + bh * 0.55 : L.eCy - L.eH * 0.05;
       ctx.globalAlpha = a; ctx.fillStyle = "rgba(6,4,16,0.66)"; ctx.fillRect(0, y - bh / 2, W, bh);
       goldLine(0, y - bh / 2, W); goldLine(0, y + bh / 2, W); ctx.globalAlpha = 1;
       const sc = 1 + (1 - easeOut(Math.min(1, q / 0.2))) * 0.3;
@@ -3933,7 +4116,7 @@ const Sound = (() => {
     try { ac = new AC(); } catch (e) { ac = null; return; }
     const comp = ac.createDynamicsCompressor();
     comp.threshold.value = -14; comp.ratio.value = 4;
-    master = ac.createGain(); master.gain.value = 0.85;
+    master = ac.createGain(); master.gain.value = settings.mute ? 0 : 0.85;
     master.connect(comp); comp.connect(ac.destination);
     sfxBus = ac.createGain(); sfxBus.gain.value = settings.sfx ? 0.7 : 0; sfxBus.connect(master);
     bgmBus = ac.createGain(); bgmBus.gain.value = settings.bgm ? 0.3 : 0; bgmBus.connect(master);
@@ -4117,6 +4300,8 @@ const Sound = (() => {
     duck(on) { if (!ac || !settings.bgm) return; bgmBus.gain.setTargetAtTime(on ? 0 : 0.3, ac.currentTime, on ? 0.02 : 0.08); },
     setSfx(on) { if (sfxBus) sfxBus.gain.setTargetAtTime(on ? 0.7 : 0, ac.currentTime, 0.02); },
     setBgm(on) { if (bgmBus) bgmBus.gain.setTargetAtTime(on ? 0.3 : 0, ac.currentTime, 0.05); },
+    // ミュート：効果音とBGMの設定はそのままで、全体の音量だけ0にする
+    setMute(on) { if (master) master.gain.setTargetAtTime(on ? 0 : 0.85, ac.currentTime, 0.03); },
     suspend() { if (ac && ac.state === "running") ac.suspend(); },
     resume() { if (ac && ac.state === "suspended") ac.resume(); },
     bpm() { return song ? song.bpm : 120; },
@@ -4265,7 +4450,7 @@ function startInput() {
   phase = "input";
 }
 function newEnemyView(data) {
-  return { attr:data.attr, statuses:cloneData(data.statuses || {}), phaseName:data.phaseName || "", hp: data.hp, ghost: data.hp, ghostT: 0, cd: data.cd, x: 0, y: 0, size: 0, flash: 0, kx: 0, alpha: 0, scale: 0.7, dying: false, dead: false, spr: null, silSpr: null,
+  return { attr:data.attr, form:data.form || 1, statuses:cloneData(data.statuses || {}), phaseName:data.phaseName || "", hp: data.hp, ghost: data.hp, ghostT: 0, cd: data.cd, x: 0, y: 0, size: 0, flash: 0, kx: 0, alpha: 0, scale: 0.7, dying: false, dead: false, spr: null, silSpr: null,
     tilt: 0, lift: 0, sx: 1, sqx: 1, sqy: 1, charge: 0, split: 0, ascend: 0, quake: 0, weakFlash: 0, crack: 0, cracks: makeCracks(data.kind) };
 }
 async function startFloor() {
@@ -4354,6 +4539,28 @@ function leaveBattle() {
   buildBackground();
 }
 let teamSlot = 0, detailOrigin = "roster";
+// レベルで覚える連鎖技（ARTS）と能力アップ（LV_PERKS）を、レベルの順に並べる
+function perkText(k) {
+  const parts = [];
+  if (k.atk) parts.push("攻撃 +" + Math.round((k.atk - 1) * 100) + "%");
+  if (k.skillTurn) parts.push("スキルの溜め −" + k.skillTurn + "ターン");
+  if (k.art) parts.push("奥義の威力 ×" + k.art);
+  return parts.join("・");
+}
+function growthHtml(ch, lv) {
+  const items = [
+    ...CONFIG.ARTS.map((a) => ({ lv: a.lv, html: '<strong>' + a.label + '「' + artName(ch, a.tier) + '」</strong><small>' + a.chain + '連鎖で発動' + (a.all ? '・敵全体' : '') + '</small>' })),
+    ...CONFIG.LV_PERKS.map((k) => ({ lv: k.lv, html: '<strong>' + perkText(k) + '</strong>' })),
+  ].sort((a, b) => a.lv - b.lv);
+  return '<ul class="growth">' + items.map((it) => '<li class="' + (lv >= it.lv ? 'got' : '') + '"><span class="g-lv">Lv' + it.lv + '</span><span>' + it.html + '</span><span class="g-state">' + (lv >= it.lv ? '習得' : '未習得') + '</span></li>').join("") + '</ul>';
+}
+// そのレベルで覚えたもの（結果画面のお知らせ用）。なければ空
+function learnedText(ch, lv) {
+  const art = CONFIG.ARTS.find((a) => a.lv === lv), perk = CONFIG.LV_PERKS.find((k) => k.lv === lv);
+  if (art) return art.label + "「" + artName(ch, art.tier) + "」を覚えた！";
+  if (perk) return perkText(perk) + "！";
+  return "";
+}
 // 仲間の詳細：立ち絵があれば全身、なければ大きな紋章
 function portraitHtml(ch) {
   const art = charAsset(ch.id), path = assets.manifest?.chars?.[ch.id]?.full;
@@ -4370,7 +4577,7 @@ function emblem(ch, large = false) {
   return src ? '<img class="emblem' + (large ? ' large' : '') + '" src="' + src + '" alt="' + alt + '">' : '<span class="chip" style="--c:' + RUNES[ch.attr].base + '">' + ch.kanji + '</span>';
 }
 function menuScene(id) {
-  leaveBattle(); scene = id; $("menuBtn").classList.add("hidden"); $("speedBtn").classList.add("hidden"); show(id); $(id).scrollTop = 0;
+  leaveBattle(); scene = id; $("menuBtn").classList.add("hidden"); $("speedBtn").classList.add("hidden"); $("muteBtn").classList.add("hidden"); show(id); $(id).scrollTop = 0;
   Sound.play("menu"); Sound.setMask([1,0,.6,0]);
 }
 function bindButton(id, callback) { $(id).addEventListener("click", () => { Sound.sfx.tap(); callback(); }); }
@@ -4416,7 +4623,7 @@ function showDetail(id, origin = detailOrigin) {
   const ch = CHARS.find(member => member.id === id), progress = saveData.roster[id], member = growCharacter(ch,progress);
   const cost = progress ? CONFIG.SKILL_LV_COST[progress.skillLv-1] : undefined;
   const ratio = member.lv >= CONFIG.LV_MAX ? 100 : member.exp / expNeeded(member.lv) * 100;
-  $("detailContent").innerHTML = '<header class="sel-head"><h2>' + ch.name + '</h2><button id="detailBackBtn" class="btn ghost">戻る</button></header><div class="portrait">' + portraitHtml(ch) + '</div><p class="note">' + RUNES[ch.attr].name + '属性 ／ ' + (progress ? 'Lv'+member.lv : '未加入：'+joinText(ch)) + '</p><div class="exp-track"><span style="width:' + ratio + '%"></span></div><p class="board-note">経験値 ' + (member.lv >= CONFIG.LV_MAX ? 'MAX' : fmt(member.exp)+' / '+fmt(expNeeded(member.lv))) + '</p><dl class="stats"><dt>HP</dt><dd>' + fmt(member.hp) + '</dd><dt>攻撃</dt><dd>' + fmt(member.atk) + '</dd><dt>回復</dt><dd>' + fmt(member.rcv) + '</dd></dl><div class="party"><h3>リーダースキル「' + ch.leader.name + '」</h3><p class="leader">' + ch.leader.desc + '</p><h3>' + member.skill.name + ' Lv' + member.skillLv + '（' + member.skill.turns + 'ターン）</h3><p class="board-note">' + member.skill.desc + '</p></div><p class="wallet">ルーン結晶 ' + fmt(saveData.crystal) + '</p><button id="upgradeSkillBtn" class="btn primary"' + (!progress || cost === undefined || saveData.crystal < cost ? ' disabled' : '') + '>' + (progress && cost === undefined ? 'スキルLv最大' : 'スキル強化（結晶' + (cost ?? CONFIG.SKILL_LV_COST[0]) + '）') + '</button>';
+  $("detailContent").innerHTML = '<header class="sel-head"><h2>' + ch.name + '</h2><button id="detailBackBtn" class="btn ghost">戻る</button></header><div class="portrait">' + portraitHtml(ch) + '</div><p class="note">' + RUNES[ch.attr].name + '属性 ／ ' + (progress ? 'Lv'+member.lv : '未加入：'+joinText(ch)) + '</p><div class="exp-track"><span style="width:' + ratio + '%"></span></div><p class="board-note">経験値 ' + (member.lv >= CONFIG.LV_MAX ? 'MAX' : fmt(member.exp)+' / '+fmt(expNeeded(member.lv))) + '</p><dl class="stats"><dt>HP</dt><dd>' + fmt(member.hp) + '</dd><dt>攻撃</dt><dd>' + fmt(member.atk) + '</dd><dt>回復</dt><dd>' + fmt(member.rcv) + '</dd></dl><div class="party"><h3>リーダースキル「' + ch.leader.name + '」</h3><p class="leader">' + ch.leader.desc + '</p><h3>' + member.skill.name + ' Lv' + member.skillLv + '（' + member.skill.turns + 'ターン）</h3><p class="board-note">' + member.skill.desc + '</p><h3>レベルで覚える技と能力</h3>' + growthHtml(ch, member.lv) + '</div><p class="wallet">ルーン結晶 ' + fmt(saveData.crystal) + '</p><button id="upgradeSkillBtn" class="btn primary"' + (!progress || cost === undefined || saveData.crystal < cost ? ' disabled' : '') + '>' + (progress && cost === undefined ? 'スキルLv最大' : 'スキル強化（結晶' + (cost ?? CONFIG.SKILL_LV_COST[0]) + '）') + '</button>';
   bindButton("detailBackBtn",() => {if(origin === "select")showSelect();else showRoster();});
   bindButton("upgradeSkillBtn",() => {adoptSave(upgradeSkill(saveData,id).next);showDetail(id,origin);});
   menuScene("detail");
@@ -4424,7 +4631,7 @@ function showDetail(id, origin = detailOrigin) {
 function showSelect() {
   leaveBattle();
   scene = "select";
-  $("menuBtn").classList.add("hidden"); $("speedBtn").classList.add("hidden");
+  $("menuBtn").classList.add("hidden"); $("speedBtn").classList.add("hidden"); $("muteBtn").classList.add("hidden");
   renderSelect(); renderParty();
   show("select");
   Sound.play("menu"); Sound.setMask([1, 0, 0.6, 0]);
@@ -4512,7 +4719,7 @@ async function startRun(d, i) {
   hideScreens();
   $("fxGallery").classList.toggle("hidden", !galleryMode);
   if (galleryMode) renderGallery();
-  $("menuBtn").classList.remove("hidden"); $("speedBtn").classList.remove("hidden"); applySettings();
+  $("menuBtn").classList.remove("hidden"); $("speedBtn").classList.remove("hidden"); $("muteBtn").classList.remove("hidden"); applySettings();
   buildBackground();
   Sound.play("battle"); musicTier = 0; syncBgm();
   await fontsReady;
@@ -4535,7 +4742,7 @@ function showResult(win, newBest) {
   ];
   $("resStats").innerHTML = rows.map((r) => "<dt>" + r[0] + "</dt><dd>" + r[1] + "</dd>").join("");
   $("resBest").classList.toggle("hidden", !newBest);
-  $("menuBtn").classList.add("hidden"); $("speedBtn").classList.add("hidden");
+  $("menuBtn").classList.add("hidden"); $("speedBtn").classList.add("hidden"); $("muteBtn").classList.add("hidden");
   show("result");
   Sound.play("menu"); Sound.setMask([1, 0, 0.6, 0]);
   $("result").scrollTop = 0;
@@ -4565,10 +4772,13 @@ async function animateRewards() {
     function done() { clearTimeout(timer); animation.wake = null; resolve(); }
     animation.wake = done;
   });
+  const hero = makeRewardHero(); wrap.appendChild(hero.el);
+  const leader = CHARS.find((c) => c.id === rewards.members[0]?.id);
+  if (leader) hero.show(leader, { lv: rewards.members[0].before.lv, sub: "経験値 +" + fmt(rewards.exp) });
   const rows = rewards.members.map((growth) => {
     const ch = CHARS.find((c) => c.id === growth.id);
     const row = document.createElement("div"); row.className = "reward-member";
-    row.innerHTML = '<span class="chip" style="--c:' + RUNES[ch.attr].base + '">' + ch.kanji + '</span><div><strong>' + ch.name + ' Lv<span class="reward-level">' + growth.before.lv + '</span></strong><div class="exp-track"><span></span></div><small class="growth-label">経験値 +' + fmt(rewards.exp) + '</small></div>';
+    row.innerHTML = emblem(ch) + '<div><strong>' + ch.name + ' Lv<span class="reward-level">' + growth.before.lv + '</span></strong><div class="exp-track"><span></span></div><small class="growth-label">経験値 +' + fmt(rewards.exp) + '</small></div>';
     const bar = row.querySelector(".exp-track span");
     bar.style.width = (growth.before.lv >= CONFIG.LV_MAX ? 100 : growth.before.exp / expNeeded(growth.before.lv) * 100) + "%";
     wrap.appendChild(row); return { row, bar, growth };
@@ -4576,7 +4786,7 @@ async function animateRewards() {
   const crystal = document.createElement("p"); crystal.className = "reward-crystal hidden"; crystal.textContent = "ルーン結晶 +" + rewards.crystal + "　所持 " + fmt(saveData.crystal);
   wrap.appendChild(crystal);
   const joins = document.createElement("div"); joins.className = "reward-joins hidden";
-  for (const id of rewards.joined) { const ch = CHARS.find(c => c.id === id); joins.innerHTML += '<div class="join-card"><span class="chip" style="--c:' + RUNES[ch.attr].base + '">' + ch.kanji + '</span><strong>' + ch.name + ' が仲間になった！</strong></div>'; }
+  for (const id of rewards.joined) { const ch = CHARS.find(c => c.id === id); joins.innerHTML += '<div class="join-card">' + emblem(ch) + '<strong>' + ch.name + ' が仲間になった！</strong></div>'; }
   wrap.appendChild(joins);
   const stars=document.createElement("div");stars.className="reward-stars hidden";stars.setAttribute("aria-label","星の評価");
   for(const star of rewards.stars) {
@@ -4592,6 +4802,9 @@ async function animateRewards() {
       if (animation.cancelled) return;
       row.querySelector(".reward-level").textContent = level;
       row.querySelector(".growth-label").textContent = "LEVEL UP　Lv" + level;
+      const who = CHARS.find((c) => c.id === growth.id), learned = learnedText(who, level);
+      hero.show(who, { lv: level, sub: "経験値 +" + fmt(rewards.exp), badge: learned || "LEVEL UP!", pop: true });
+      if (learned) { row.querySelector(".growth-label").textContent = "Lv" + level + "　" + learned; await pause(CONFIG.RESULT_LEVEL_TIME * 4); }
       if (!settings.flash && !reducedMotion()) { row.classList.remove("level-up"); void row.offsetWidth; row.classList.add("level-up"); }
       await pause(CONFIG.RESULT_LEVEL_TIME); bar.style.transition = "none"; bar.style.width = "0%"; void bar.offsetWidth; bar.style.transition = "";
     }
@@ -4610,7 +4823,46 @@ async function animateRewards() {
   if(animation.cancelled)return;
   stars.classList.remove("hidden");
   if(!settings.flash && !reducedMotion())stars.querySelectorAll(".new-star").forEach(card=>card.classList.add("level-up"));
+  // 最後は、新しく加わった仲間（いなければ、いちばんレベルが上がった仲間）を出しておく
+  const joined = CHARS.find((c) => c.id === rewards.joined[0]);
+  const best = rewards.members.reduce((a, g) => (!a || g.levels.length > a.levels.length ? g : a), null);
+  if (joined) hero.show(joined, { lv: 1, sub: "NEW", badge: "仲間になった！", pop: true });
+  else if (best) {
+    const who = CHARS.find((c) => c.id === best.id), learned = [...best.levels].reverse().map((lv) => learnedText(who, lv)).find(Boolean);
+    hero.show(who, { lv: best.after.lv, sub: "経験値 +" + fmt(rewards.exp), badge: learned || (best.levels.length ? "LEVEL UP ×" + best.levels.length : "") });
+  }
   $("skipRewardsBtn").classList.add("hidden"); rewardAnimation = null;
+}
+// 結果画面の帯：仲間の顔〜胸の絵（manifest の cutin を少し下へ広げた範囲）と、名前・レベル
+function makeRewardHero() {
+  const el = document.createElement("div"); el.className = "res-hero"; el.setAttribute("aria-hidden", "true");
+  el.innerHTML = '<canvas></canvas><div class="hero-text"><small></small><strong></strong><span class="hero-lv"></span><span class="hero-badge"></span></div>';
+  const cv = el.querySelector("canvas"); let shown = null;
+  const draw = (ch) => {
+    const g = cv.getContext("2d"), hpx = Math.round((cv.clientHeight || el.clientHeight || 152) * Math.min(2, window.devicePixelRatio || 1));
+    const art = charAsset(ch.id);
+    if (!art?.full) {
+      const spr = iconDetail[CHARS.findIndex((m) => m.id === ch.id)];
+      cv.width = cv.height = hpx; if (spr) g.drawImage(spr, 0, 0, hpx, hpx); return;
+    }
+    const img = art.full, W = img.naturalWidth, H = img.naturalHeight, [fx, fy, fw, fh] = art.cutin || [0.25, 0.05, 0.5, 0.3];
+    const w = Math.min(1, fw * 1.1), h = Math.min(1, fh * 1.6);
+    const x = clamp(fx + fw / 2 - w / 2, 0, 1 - w), y = clamp(fy - fh * 0.05, 0, 1 - h);
+    cv.height = hpx; cv.width = Math.max(1, Math.round(hpx * (w * W) / (h * H)));
+    g.imageSmoothingQuality = "high";
+    g.drawImage(img, x * W, y * H, w * W, h * H, 0, 0, cv.width, cv.height);
+  };
+  const show = (ch, { lv, sub = "", badge = "", pop = false } = {}) => {
+    if (!ch) return;
+    if (shown !== ch.id) { shown = ch.id; draw(ch); el.style.setProperty("--c", RUNES[ch.attr].base); el.querySelector("strong").textContent = ch.name; }
+    el.querySelector("small").textContent = sub;
+    el.querySelector(".hero-lv").textContent = "Lv " + lv;
+    el.querySelector(".hero-badge").textContent = badge;
+    el.querySelector(".hero-badge").classList.toggle("long", badge.length > 9);
+    el.classList.toggle("lvup", !!badge);
+    if (pop && !settings.flash && !reducedMotion()) { el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); }
+  };
+  return { el, show };
 }
 $("skipRewardsBtn").addEventListener("click", skipRewards);
 $("result").addEventListener("click", (event) => { if (!event.target.closest("button")) skipRewards(); });
@@ -4650,6 +4902,7 @@ function settingsNode(onClose) {
     { key: "speed", label: "演出速度", opts: [["normal", "標準"], ["fast", "高速"], ["fastest", "最速"]] },
     { key: "shake", label: "画面揺れ・振動", opts: [[true, "オン"], [false, "オフ"]] },
     { key: "flash", label: "フラッシュ軽減", opts: [[true, "オン"], [false, "オフ"]] },
+    { key: "mute", label: "ミュート（すべての音を消す）", opts: [[false, "オフ"], [true, "オン"]] },
     { key: "sfx", label: "効果音", opts: [[true, "オン"], [false, "オフ"]] },
     { key: "bgm", label: "BGM", opts: [[true, "オン"], [false, "オフ"]] },
   ];
@@ -4718,7 +4971,24 @@ function openSaveImport(onClose) {
   openModal("セーブを読み込む", body, [{ label: "設定へ戻る", primary: true, fn: () => openSettings(onClose) }]);
 }
 
-function applySettings() { Sound.setSfx(settings.sfx); Sound.setBgm(settings.bgm); if ($("speedBtn")) $("speedBtn").textContent="×"+SPEED[settings.speed]; }
+function applySettings() {
+  Sound.setSfx(settings.sfx); Sound.setBgm(settings.bgm); Sound.setMute(settings.mute);
+  if ($("speedBtn")) $("speedBtn").textContent="×"+SPEED[settings.speed];
+  const mb = $("muteBtn");
+  if (mb) { mb.setAttribute("aria-pressed", String(settings.mute)); mb.setAttribute("aria-label", settings.mute ? "ミュートを解除する" : "音をミュートする"); mb.classList.toggle("muted", settings.mute); }
+}
+function toggleMute() {
+  settings.mute = !settings.mute; writeSave(); applySettings();
+  showToast(settings.mute ? "ミュート：オン" : "ミュート：オフ");
+  if (!settings.mute) Sound.sfx.tap();
+}
+// 画面の下に短く出る知らせ（キーボードのMでミュートを切り替えたときなど）
+let toastTimer = 0;
+function showToast(text) {
+  const t = $("toast"); if (!t) return;
+  t.textContent = text; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1200);
+}
 function openSettings(onClose) { openModal("設定", settingsNode(onClose), [{ label: "閉じる", primary: true, fn: onClose }]); }
 function openPause() {
   clock.paused = true;
@@ -4769,6 +5039,13 @@ function openDebug(onClose) {
   }
   openModal("デバッグ",wrap,[{label:"閉じる",primary:true,fn:()=>{if(scene==="home")showHome();else if(scene==="select"){renderSelect();renderParty();}else if(onClose)onClose();}}]);
 }
+$("muteBtn").addEventListener("click", (event) => { event.stopPropagation(); Sound.init(); toggleMute(); });
+// キーボードの M でミュートを切り替える（文字を入力中は何もしない）
+document.addEventListener("keydown", (event) => {
+  if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || (event.key !== "m" && event.key !== "M")) return;
+  const el = document.activeElement; if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
+  Sound.init(); toggleMute();
+});
 $("speedBtn").addEventListener("click",()=>{
   const keys=Object.keys(SPEED);settings.speed=keys[(keys.indexOf(settings.speed)+1)%keys.length];writeSave();applySettings();
 });
@@ -4809,14 +5086,14 @@ document.addEventListener("visibilitychange", () => {
 
 // --- 演出見本（デバッグ。docs/design-fx.md F1） ---
 // 敵は倒れず（HP1億）、攻撃は0ダメージ。セーブには何も書かない。普通に盤面を動かして遊ぶこともできる
-let galleryMode = false, galleryBoss = false;
+let galleryMode = false, galleryBoss = false, galleryArt = "d1";
 function galleryDungeon(withBoss) {
   const big = 100000000;
   const floor = withBoss
     ? [{ ...boss(2, "見本の王", big, 0, 0, 1, "見本の大技", 0), autoEnrage: false, bigEvery: 3 }]
     : [mob("sentinel", 0, big, 0, 0, 1), mob("wisp", 1, big, 0, 0, 1), mob("golem", 2, big, 0, 0, 1)];
-  // ボスの絵はダンジョン1のものを借りる
-  return { id: "fx", assetId: "d1", name: "演出見本", hue: 262, desc: "", floors: [floor] };
+  // ボスの絵は「ボスの絵を切替」で選んだもの（最初はダンジョン1）
+  return { id: "fx", assetId: galleryArt, name: "演出見本", hue: 262, desc: "", floors: [floor] };
 }
 async function startGallery(withBoss) {
   debugSession = true; galleryMode = true; galleryBoss = !!withBoss;
@@ -4833,6 +5110,12 @@ function renderGallery() {
   };
   add("閉じる", showHome, true);
   add(galleryBoss ? "雑魚に切替" : "ボスに切替", () => { if (phase === "input") startGallery(!galleryBoss); });
+  if (galleryBoss) add("ボスの絵を切替（" + galleryArt + "）", () => {
+    if (phase !== "input") return;
+    const keys = Object.keys(assets.manifest?.bosses || { d1: 1 });
+    galleryArt = keys[(keys.indexOf(galleryArt) + 1) % keys.length];
+    startGallery(true);
+  });
   add("元に戻す", () => { if (phase === "input") galleryReset(); });
   [5, 10, 13, 16, 20].forEach((n) => add(n + "コンボ", () => galleryCombo(n)));
   add("フィニッシュ", galleryFinisher);
@@ -4842,6 +5125,7 @@ function renderGallery() {
   RUNES.slice(0, 5).forEach((R, attr) => add(R.name + "の大技版", () => galleryAttack(attr, true)));
   if (galleryBoss) { add("ボスの攻撃", () => galleryEnemyAtk(0, false)); add("ボスの大技", () => galleryEnemyAtk(0, true)); }
   else ["センチネル", "ウィスプ", "ゴーレム"].forEach((name, j) => add(name + "の攻撃", () => galleryEnemyAtk(j, false)));
+  CONFIG.ARTS.forEach((a) => add(a.label, () => galleryArtFx(a.tier)));
   add("オーバードライブ", galleryOD);
   add("セリフ", galleryBark);
 }
@@ -4880,6 +5164,12 @@ function galleryAttacks(target, killLast = false) {
 function galleryAttack(attr, big) {
   const target = galleryTarget(), member = Math.max(0, state.party.findIndex((m) => m.attr === attr));
   galleryPlay([{ t: "attack", member, attr, hits: [galleryHit(target, big ? 48210 : 12345)], big }]);
+}
+function galleryArtFx(tier) {
+  const a = CONFIG.ARTS.find((x) => x.tier === tier), target = galleryTarget();
+  const targets = a.all ? state.enemies.map((e, j) => j).filter((j) => !state.enemies[j].v.dead) : [target];
+  const dmg = [0, 30000, 90000, 160000, 420000][tier];
+  galleryPlay([galleryTotal(Math.max(a.chain + 2, 6)), { t: "art", member: 0, attr: state.party[0].attr, tier, label: a.label, chains: a.chain, hits: targets.map((j) => galleryHit(j, dmg)) }]);
 }
 function galleryTotal(n) { return { t: "total", combos: n, tier: tierOf(n), prism: false, resonance: [] }; }
 function galleryFinisher() { galleryPlay([galleryTotal(8), ...galleryAttacks(galleryTarget())]); }
@@ -5047,6 +5337,8 @@ if (DEBUG_MODE) window.RUNE_DEBUG = {
   get waits() { return waits.length + "/" + realWaits.length + "/" + condWaits.length; },
   setBoard(rows) { view.board = viewFromBoard(rows.map((r) => r.map((value) => typeof value === "number" ? {c:value,p:state.od.active} : {...value}))); state.board = boardFromView(); },
   resolve() { if (phase === "input") return endMove(); },
+  // ダンジョン i のボス戦からすぐ始める（確認用。セーブには書かない）
+  startBoss(i) { const d = DUNGEONS[i]; debugSession = true; galleryMode = false; return startRun({ ...d, floors: [d.floors[d.floors.length - 1]] }, i); },
 };
 
 renderParty();
