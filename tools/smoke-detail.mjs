@@ -1,5 +1,6 @@
 import { smokePerformance } from './smoke-performance.mjs';
 import { execFileSync } from 'node:child_process';
+import { smokeArt } from './smoke-art.mjs';
 import assert from 'node:assert/strict';
 import { smokeUsability } from './smoke-usability.mjs';
 import { smokeDungeons } from './smoke-dungeons.mjs';
@@ -22,11 +23,18 @@ catch (error) {
 }
 const root = fileURLToPath(new URL('../', import.meta.url));
 const html = readFileSync(resolve(root, 'index.html'));
-const baseline = execFileSync('git',['show','df0f777:index.html'],{cwd:root});
+// 旧Git履歴がある場合だけ過去版と比較。現在版の全検証は常に行う。
+let baseline=null;
+try { execFileSync('git',['cat-file','-e','df0f777:index.html'],{cwd:root,stdio:'ignore'}); baseline=execFileSync('git',['show','df0f777:index.html'],{cwd:root}); } catch {}
 const server = createServer((req, res) => {
   if (req.url === '/favicon.ico') { res.writeHead(204); res.end(); return; }
-  if(req.url.split('?')[0]==='/baseline.html'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(baseline);return;}
-  if (!['/', '/index.html'].includes(req.url.split('?')[0])) { res.writeHead(404); res.end(); return; }
+  if(baseline&&req.url.split('?')[0]==='/baseline.html'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});res.end(baseline);return;}
+  const path=req.url.split('?')[0];
+  if(/^\/assets\/[a-zA-Z0-9_.-]+$/.test(path)){
+    try { const data=readFileSync(resolve(root,'.'+path));res.writeHead(200,{'Content-Type':path.endsWith('.json')?'application/json':'image/webp'});res.end(data); }
+    catch {res.writeHead(404);res.end();}return;
+  }
+  if (!['/', '/index.html'].includes(path)) { res.writeHead(404); res.end(); return; }
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); res.end(html);
 });
 server.listen(0, '127.0.0.1');
@@ -42,7 +50,8 @@ try {
     ...(process.env.PLAYWRIGHT_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_EXECUTABLE } : { channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' }),
   });
   mkdirSync(resolve(root, "screenshots"), {recursive:true});
-  await smokePerformance(browser,url,root,errors);
+  await smokePerformance(browser,url,root,errors,!!baseline);
+  await smokeArt(browser,url,root,errors);
   await smokeUsability(browser,url,root,errors);
   for (const testCase of [
     { board: '7x6', viewport: { width: 390, height: 844 } },

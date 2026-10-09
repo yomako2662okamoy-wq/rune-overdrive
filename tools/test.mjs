@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { loadLogic, loadSaveAdapter, loadQualityPolicy, plain } from './load-logic.mjs';
 
@@ -701,4 +703,48 @@ test('画質は2秒平均で1段下げ、57fpsが10秒続いた時だけ上げ�
  sample(120,60);sampleQuality(q,2,true,c);assert.equal(q.stable,0,'Ignore suspension');
  q.level=q.pending=0;sample(60,30);assert.equal(q.pending,0);
  sample(480,60);sample(110,55);sample(120,60);assert.equal(q.pending,0,'Recovery must be consecutive');
+});
+
+
+test('セリフ設定は旧セーブでオンを補完し、オフも保存・再読込で維持する',()=>{
+ const old=plain(logic.createSave());delete old.settings.barks;
+ assert.equal(logic.normalizeSave(old).settings.barks,true);
+ old.settings.barks=false;assert.equal(logic.parseSave(JSON.stringify(old)).settings.barks,false);
+ old.settings.barks='false';assert.equal(logic.normalizeSave(old).settings.barks,true);
+ const legacy={settings:{barks:false},cleared:{d1:true},best:{'d1:7x6':12}};
+ assert.equal(logic.migrateSave(legacy).settings.barks,false);
+ assert.equal(logic.migrateSave(legacy).dungeons.d1.best['7x6'],12);
+});
+
+test('連鎖アシストは新規セルだけをそろえ、毒を選ばず、未指定の落下を保つ',()=>{
+ const board=deepFreeze([[null,{c:2,p:true,lock:true},{c:2,p:false,dark:2}]]);
+ const normal=logic.fall(board,false,()=>.5);
+ const assisted=logic.fall(board,false,()=>.5,config,null,{rate:1});
+ assert.equal(normal.guided,null);assert.equal(normal.board[0][0].c,3);
+ assert.deepEqual(plain(assisted.guided),[0,0]);assert(assisted.from[0][0]<0);
+ assert.equal(assisted.board[0][0].c,2);assert.equal(logic.findGroups(assisted.board).length,1);
+ assert.deepEqual(plain(assisted.board[0].slice(1)),plain(board[0].slice(1)));
+ const poison=[[null,{c:config.POISON_COLOR,p:false},{c:config.POISON_COLOR,p:false}]];
+ assert.equal(logic.fall(poison,false,()=>.5,config,null,{rate:1}).guided,null);
+ const a=logic.fall(board,false,logic.mulberry32(91),config,null,{rate:1});
+ const b=logic.fall(board,false,logic.mulberry32(91),config,null,{rate:1});assert.deepEqual(plain(a),plain(b));
+});
+
+test('連鎖アシストは通常とODの上限・減衰・無効化を守る',()=>{
+ const rules={...config,CHAIN_ASSIST:1,CHAIN_ASSIST_OD:1,CHAIN_ASSIST_DECAY:1,CHAIN_ASSIST_DECAY_OD:1,CHAIN_ASSIST_MAX:2,CHAIN_ASSIST_MAX_OD:3};
+ const run=(od,extra={})=>logic.resolveTurn(game({board:tenGroups(),enemies:[],rules:{...rules,...extra},od:{active:od,chain:0}}),{},{board:()=>0,enemy:()=>.5});
+ assert.equal(run(false).events.filter(e=>e.t==='fall'&&e.guided).length,2);
+ assert.equal(run(true).events.filter(e=>e.t==='fall'&&e.guided).length,3);
+ assert.equal(run(false,{CHAIN_ASSIST_DECAY:0}).events.filter(e=>e.t==='fall'&&e.guided).length,1);
+ assert.equal(run(false,{CHAIN_ASSIST_MAX:0}).events.filter(e=>e.t==='fall'&&e.guided).length,0);
+});
+
+test('素材の一覧とダブルクリック用の一覧が一致し、登録した画像が存在する',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('const ASSET_MANIFEST_FALLBACK ='),html.indexOf('const assets ='));
+ const manifest=JSON.parse(readFileSync(new URL('../assets/manifest.json',import.meta.url),'utf8'));
+ assert.deepEqual(JSON.parse(vm.runInNewContext(source+'\nJSON.stringify(ASSET_MANIFEST_FALLBACK)')),manifest);
+ const files=[...Object.values(manifest.enemies),...Object.values(manifest.bosses)].map(e=>e.file);
+ for(const entry of Object.values(manifest.chars))files.push(entry.full,entry.face);
+ for(const file of files.filter(Boolean)){assert(file.startsWith('assets/')&&!file.includes('..'));assert(readFileSync(new URL('../'+file,import.meta.url)).length>0);}
 });

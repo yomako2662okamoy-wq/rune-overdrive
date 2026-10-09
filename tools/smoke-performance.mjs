@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import {writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
-export async function smokePerformance(browser,url,root,errors){
+export async function smokePerformance(browser,url,root,errors,baselineAvailable=true){
  const reports=[];
- for(const version of ['before','after']){
+ for(const version of baselineAvailable?['before','after']:['after']){
   const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:3});
   await context.route('**/*',r=>r.request().url().startsWith(url+'/')?r.continue():r.fulfill({status:200,contentType:'text/css',body:''}));
   const page=await context.newPage();page.on('pageerror',e=>errors.push('performance: '+e.message));
@@ -86,7 +86,7 @@ export async function smokePerformance(browser,url,root,errors){
   await context.close();
  }
  assert.deepEqual(errors,[]);
- writeFileSync(resolve(root,'docs/performance-c3.json'),JSON.stringify({environment:'Desktop Chrome, 390x844, DPR3. CPU time inside rAF callback only; excludes GPU presentation. Not a real mobile-device measurement.',reports},null,2)+'\n');
+ writeFileSync(resolve(root,'docs/performance-c3.json'),JSON.stringify({baselineAvailable,comparison:baselineAvailable?'Historical df0f777 versus current':'Historical source unavailable after Git reinitialization; current validations only',environment:'Desktop Chrome, 390x844, DPR3. CPU time inside rAF callback only; excludes GPU presentation. Not a real mobile-device measurement.',reports},null,2)+'\n');
  console.log('PASS: 20 combos preserve LOGIC/save; cached gradients; 3 quality levels; particle count; idle 30fps');
  console.log(JSON.stringify(reports));
 }
