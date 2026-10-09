@@ -1,0 +1,17 @@
+{
+  "K": 100,
+  "trials": 200,
+  "seed": 20261006,
+  "maxTurns": 300,
+  "dungeons": [
+    "d1",
+    "d2",
+    "d3",
+    "d4",
+    "d5",
+    "d6",
+    "d7",
+    "d8"
+  ],
+  "output": "docs/sim/c3-final-200.csv"
+}

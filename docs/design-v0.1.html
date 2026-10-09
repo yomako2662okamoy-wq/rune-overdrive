@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RUNE OVERDRIVE ゲーム設計書</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F4F2FB; --panel:#FFFFFF; --ink:#1C1838; --ink-2:#555073; --rule:#DCD7EE; --accent:#5B33C9; --code:#ECE8F8;
+  --screen:#120F26;
+  --flare:#FF5A3D; --aqua:#2E9BFF; --leaf:#2FD07A; --lux:#FFC93D; --nox:#9B5CFF; --life:#FF6FB5;
+  --display:"Dela Gothic One","Hiragino Kaku Gothic StdN","Hiragino Sans","Noto Sans JP",sans-serif;
+  --body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#15122B; --panel:#1E1A3A; --ink:#ECE9FA; --ink-2:#ABA5CB; --rule:#312B55; --accent:#B9A0FF; --code:#241F45;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#15122B; --panel:#1E1A3A; --ink:#ECE9FA; --ink-2:#ABA5CB; --rule:#312B55; --accent:#B9A0FF; --code:#241F45;
+  color-scheme:dark;
+}
+html{ scroll-padding-top:env(safe-area-inset-top,0px); -webkit-text-size-adjust:100%; }
+*,*::before,*::after{ box-sizing:border-box; }
+body{ margin:0; background:var(--paper); color:var(--ink); font-family:var(--body); font-size:16px; line-height:1.85; }
+a{ color:var(--accent); }
+a:focus-visible, button:focus-visible, summary:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; border-radius:4px; }
+
+/* ---------- hero ---------- */
+.hero{ padding:clamp(2rem,6vw,4.5rem) clamp(1rem,5vw,3rem) clamp(2rem,5vw,3.5rem); border-bottom:1px solid var(--rule); }
+.hero-inner{ max-width:72rem; margin:0 auto; display:grid; grid-template-columns:1fr; gap:clamp(1.75rem,4vw,3.5rem); align-items:center; }
+@media (min-width:900px){ .hero-inner{ grid-template-columns:1fr minmax(0,460px); } }
+.kind{ margin:0 0 .75rem; font-weight:700; color:var(--ink-2); font-size:.95rem; }
+.title{ font-family:var(--display); font-weight:400; font-size:clamp(2.7rem,9vw,5.4rem); line-height:.98; letter-spacing:.01em; margin:0; overflow-wrap:anywhere; }
+.title span{ display:block; }
+.subtitle{ font-family:var(--display); font-weight:400; font-size:clamp(1.05rem,2.6vw,1.4rem); margin:1rem 0 0; }
+.lede{ font-size:1.125rem; margin:1.1rem 0 0; max-width:28em; }
+.meta{ display:grid; grid-template-columns:auto 1fr; gap:.2rem 1.1rem; margin:1.6rem 0 0; font-size:.9rem; color:var(--ink-2); line-height:1.6; }
+.meta dt{ font-weight:700; color:var(--ink); }
+.meta dd{ margin:0; }
+
+.device{ width:100%; max-width:460px; justify-self:center; background:var(--screen); border:1px solid rgba(255,255,255,.08); border-radius:28px; padding:14px; box-shadow:0 30px 70px -30px rgba(50,25,140,.6); }
+#demo-wrap{ width:100%; }
+#demo{ display:block; width:100%; border-radius:18px; }
+.controls{ display:flex; flex-wrap:wrap; gap:.5rem; margin-top:12px; }
+.btn{ font:700 .95rem/1 var(--body); padding:.8rem 1.15rem; border-radius:999px; border:1px solid rgba(255,255,255,.2); background:#2A2450; color:#F1EEFF; cursor:pointer; }
+.btn.primary{ background:#F1EEFF; color:#1A1536; border-color:transparent; }
+.btn[disabled]{ opacity:.6; cursor:default; }
+.btn:focus-visible{ outline:3px solid #B9A0FF; outline-offset:2px; }
+.demo-note{ margin:.8rem 0 0; color:#B8B2DA; font-size:.82rem; line-height:1.65; }
+
+/* ---------- layout ---------- */
+.layout{ max-width:72rem; margin:0 auto; padding:2rem clamp(1rem,5vw,3rem) 5rem; display:grid; grid-template-columns:minmax(0,1fr); gap:2rem; }
+@media (min-width:1024px){
+  .layout{ grid-template-columns:13.5rem minmax(0,1fr); gap:3.5rem; }
+  .toc{ position:sticky; top:calc(env(safe-area-inset-top,0px) + 1.5rem); align-self:start; max-height:calc(100dvh - 3rem); overflow:auto; }
+}
+.toc summary{ font-weight:700; cursor:pointer; padding:.25rem 0; }
+.toc ol{ list-style:none; margin:.5rem 0 0; padding:0; font-size:.92rem; line-height:1.5; }
+.toc li{ margin:0; }
+.toc a{ display:flex; gap:.6rem; padding:.35rem 0; color:var(--ink); text-decoration:none; }
+.toc a:hover{ color:var(--accent); }
+.toc .n{ color:var(--accent); min-width:1.4em; font-variant-numeric:tabular-nums; font-weight:700; }
+
+.doc{ min-width:0; max-width:46rem; }
+.doc > section{ margin-top:3.25rem; padding-top:1.5rem; border-top:1px solid var(--rule); }
+.doc > section:first-child{ margin-top:0; padding-top:0; border-top:0; }
+.doc h2{ font-family:var(--display); font-weight:400; font-size:clamp(1.5rem,3.6vw,2rem); line-height:1.3; margin:0 0 1.1rem; display:flex; gap:.7rem; align-items:baseline; }
+.doc h2 .no{ color:var(--accent); font-size:.8em; min-width:1.3em; }
+.doc h3{ font-size:1.15rem; font-weight:700; line-height:1.5; margin:2.25rem 0 .5rem; }
+.doc h3 .no{ color:var(--accent); margin-right:.55em; font-variant-numeric:tabular-nums; }
+.doc p, .doc ul, .doc ol{ max-width:38em; }
+.doc ul, .doc ol{ padding-left:1.4em; }
+.doc li{ margin:.3rem 0; }
+.doc strong{ font-weight:700; }
+
+.table-wrap{ overflow-x:auto; margin:1rem 0 1.5rem; border:1px solid var(--rule); border-radius:12px; background:var(--panel); }
+table{ border-collapse:collapse; width:100%; font-size:.9rem; line-height:1.6; }
+th, td{ text-align:left; vertical-align:top; padding:.6rem .8rem; border-bottom:1px solid var(--rule); }
+th{ background:var(--code); font-weight:700; white-space:nowrap; }
+tr:last-child td{ border-bottom:0; }
+.num{ font-variant-numeric:tabular-nums; white-space:nowrap; }
+.nowrap{ white-space:nowrap; }
+.wide{ min-width:44rem; }
+
+.rune{ display:inline-flex; align-items:center; justify-content:center; width:1.75em; height:1.75em; border-radius:.45em; background:var(--c); color:#fff; font-weight:700; font-size:.85em; margin-right:.45em; vertical-align:middle; }
+.rune.lt{ color:#3A2A00; }
+
+.tbar{ display:block; width:4.5rem; height:6px; border-radius:3px; background:var(--rule); margin-top:.4rem; position:relative; overflow:hidden; }
+.tbar::after{ content:""; position:absolute; inset:0 auto 0 0; width:calc(var(--v) * 100%); background:var(--b); border-radius:3px; }
+
+pre{ background:var(--code); border-radius:12px; padding:1rem 1.1rem; overflow-x:auto; font:.84rem/1.7 var(--mono); margin:1rem 0 1.5rem; }
+code{ font-family:var(--mono); font-size:.9em; }
+:not(pre) > code{ background:var(--code); padding:.08em .35em; border-radius:.3em; }
+
+.rule-box{ background:var(--panel); border-left:4px solid var(--accent); border-radius:0 12px 12px 0; padding:1rem 1.25rem; margin:1.25rem 0 1.5rem; }
+.rule-box p{ margin:.4rem 0; }
+.rule-box p:first-child{ margin-top:0; }
+.rule-box p:last-child{ margin-bottom:0; }
+.formula{ background:var(--panel); border:1px solid var(--rule); border-radius:12px; padding:1rem 1.2rem; font-weight:700; margin:1rem 0; line-height:1.9; }
+.calc{ font-variant-numeric:tabular-nums; }
+
+.diagram{ background:#F7F5FD; color:#1C1838; border-radius:12px; padding:1rem; margin:1rem 0 1.5rem; overflow-x:auto; }
+.diagram pre.mermaid{ background:transparent; margin:0; padding:0; text-align:center; font-family:var(--body); }
+
+.story{ padding-left:1.6em; }
+.story li{ margin:.55rem 0; }
+
+.screen-plan{ display:flex; flex-wrap:wrap; gap:1.5rem; align-items:flex-start; margin:1rem 0 1.5rem; }
+.wire{ flex:0 0 auto; width:190px; aspect-ratio:9/19.5; border:2px solid var(--ink); border-radius:28px; padding:12px 8px; display:grid; grid-template-rows:38fr 12fr 50fr; gap:6px; background:var(--panel); }
+.wire > div{ border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; font-size:.74rem; line-height:1.4; padding:.4rem; }
+.wire b{ font-size:.84rem; }
+.w-enemy{ background:rgba(155,92,255,.16); }
+.w-party{ background:rgba(46,155,255,.16); }
+.w-board{ background:rgba(255,90,61,.13); }
+.screen-plan ul{ flex:1 1 16rem; margin:0; }
+
+.steps{ list-style:none; padding:0 !important; counter-reset:step -1; margin:1.25rem 0; }
+.steps > li{ counter-increment:step; position:relative; margin:0 0 0 1rem; padding:0 0 1.5rem 2.2rem; border-left:2px solid var(--rule); }
+.steps > li:last-child{ border-left-color:transparent; }
+.steps > li::before{ content:counter(step); position:absolute; left:-1.06rem; top:0; width:2rem; height:2rem; border-radius:50%; background:var(--paper); border:2px solid var(--accent); color:var(--accent); font-family:var(--display); font-size:.95rem; line-height:1; display:grid; place-items:center; }
+.steps h4{ margin:0; font-size:1.05rem; line-height:2rem; }
+.steps p{ margin:.3rem 0; }
+.ask{ background:var(--code); border-radius:10px; padding:.6rem .85rem; font-size:.92rem; }
+
+.foot{ max-width:72rem; margin:0 auto; padding:2rem clamp(1rem,5vw,3rem) 3rem; color:var(--ink-2); font-size:.85rem; border-top:1px solid var(--rule); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div>
+      <p class="kind">ゲーム設計書（仮タイトル）</p>
+      <h1 class="title"><span>RUNE</span><span>OVERDRIVE</span></h1>
+      <p class="subtitle">ルーン・オーバードライブ</p>
+      <p class="lede">ルーンを1つつかんで盤面をなぞり、そろえた連鎖の数だけ画面が炸裂する。縦持ち・指一本で遊ぶパズルRPGの設計書です。</p>
+      <dl class="meta">
+        <dt>版</dt><dd>v0.1（たたき台。数値はすべて仮）</dd>
+        <dt>日付</dt><dd>2026年10月4日</dd>
+        <dt>遊ぶ端末</dt><dd>スマホのブラウザ（縦持ち）、のちにPWA化</dd>
+        <dt>作り方</dt><dd>単一HTML＋Canvas、外部ライブラリなし</dd>
+      </dl>
+    </div>
+    <div class="device">
+      <div id="demo-wrap">
+        <canvas id="demo" role="img" aria-label="コンボ演出のデモ。6列5行のルーン盤面で、コンボが増えるごとに演出が強くなり、10コンボでオーバードライブが発動する"></canvas>
+      </div>
+      <div class="controls">
+        <button class="btn primary" id="demo-play" type="button">コンボ演出を再生</button>
+        <button class="btn" id="demo-sound" type="button" aria-pressed="false">効果音：オフ</button>
+      </div>
+      <p class="demo-note">5.2「コンボ段階表」をそのまま動かした見本。コンボが増えるたびに音程・揺れ・粒子・文字が一段ずつ強くなり、10コンボでオーバードライブが発動する。端末で「視差効果を減らす」がオンなら、揺れなしの控えめ版で再生する。</p>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="toc" aria-label="目次">
+    <details open>
+      <summary>目次</summary>
+      <ol>
+        <li><a href="#s1"><span class="n">1</span>ゲーム概要</a></li>
+        <li><a href="#s2"><span class="n">2</span>コアループ</a></li>
+        <li><a href="#s3"><span class="n">3</span>パズル仕様</a></li>
+        <li><a href="#s4"><span class="n">4</span>バトル仕様</a></li>
+        <li><a href="#s5"><span class="n">5</span>演出設計</a></li>
+        <li><a href="#s6"><span class="n">6</span>ビジュアルと画面</a></li>
+        <li><a href="#s7"><span class="n">7</span>進行とコンテンツ</a></li>
+        <li><a href="#s8"><span class="n">8</span>技術設計</a></li>
+        <li><a href="#s9"><span class="n">9</span>開発ロードマップ</a></li>
+        <li><a href="#s10"><span class="n">10</span>調整用の数値</a></li>
+      </ol>
+    </details>
+  </nav>
+
+  <main class="doc">
+
+    <section>
+      <div class="rule-box">
+        <p><strong>この設計書の使い方</strong></p>
+        <p>AIに実装を頼むときは「設計書の3.3と8.5を実装して」のように章番号で指定し、1回に1フェーズずつ進める（第9章）。数値はすべて第10章に集めてあるので、遊んでみて調整するときはそこだけ触ればいい。</p>
+      </div>
+    </section>
+
+    <!-- ===================== 1 ===================== -->
+    <section id="s1">
+      <h2><span class="no">1</span>ゲーム概要</h2>
+
+      <h3><span class="no">1.1</span>コンセプト</h3>
+      <p>パズドラに代表される「ルーンを自由に動かしてそろえる」タイプのパズルRPG。操作の仕組みはこのジャンル共通のものを使い、世界観・キャラクター・名前・絵はすべてオリジナルで作る。</p>
+      <p>体験の核は二段構えにする。</p>
+      <ul>
+        <li><strong>考える気持ちよさ</strong>：4秒の間に盤面を読み、どこまで連鎖をつなげるかを計画する。</li>
+        <li><strong>解き放つ気持ちよさ</strong>：指を離した瞬間から、つないだ連鎖が音と光で一つずつ炸裂していく。</li>
+      </ul>
+      <p>この「溜めて、放つ」を1ターン5秒前後で何十回もくり返すのがゲームの骨格。</p>
+
+      <h3><span class="no">1.2</span>基本情報</h3>
+      <div class="table-wrap"><table>
+        <tr><th>ジャンル</th><td>盤面入れ替え型のパズルRPG</td></tr>
+        <tr><th>遊ぶ端末</th><td>スマホのブラウザ（iPhone Safari／Android Chrome）。PCでもマウスで動く</td></tr>
+        <tr><th>画面</th><td>縦持ち</td></tr>
+        <tr><th>操作</th><td>片手・指一本。盤面は親指の届く画面の下半分</td></tr>
+        <tr><th>1回の長さ</th><td>1ダンジョン3〜5分</td></tr>
+        <tr><th>通信</th><td>なし（オフラインで遊べる）。データは端末内に保存</td></tr>
+      </table></div>
+
+      <h3><span class="no">1.3</span>このゲームならではの要素</h3>
+      <ul>
+        <li><strong>オーバードライブ（OD）</strong>：1ターンに10コンボ以上つなぐと発動。時間が止まる演出のあと、次のターンは盤面が全部強化ルーンになり、攻撃1.5倍・操作時間＋2秒。「10コンボを狙う」というはっきりした目標が生まれる。</li>
+        <li><strong>共鳴とプリズム</strong>：同じ色を3グループ以上消すと「共鳴」、6種類すべてを消すと「プリズム」。消し方によって演出そのものが変わる。</li>
+        <li><strong>盛り上がるBGM</strong>：コンボ数に応じてBGMの楽器が一つずつ増える。音を聞くだけで「今いい感じ」が分かる。</li>
+      </ul>
+    </section>
+
+    <!-- ===================== 2 ===================== -->
+    <section id="s2">
+      <h2><span class="no">2</span>コアループ</h2>
+
+      <h3><span class="no">2.1</span>ゲーム全体の流れ</h3>
+      <div class="diagram"><pre class="mermaid">%%{init: {"theme": "neutral"}}%%
+flowchart LR
+  A["ホーム"] --> B["ダンジョン選択"]
+  B --> C["バトル（フロア）"]
+  C --> D{"最後のフロア？"}
+  D -- "まだ" --> C
+  D -- "ボス撃破" --> E["結果・報酬"]
+  E --> F["育成"]
+  F --> A</pre></div>
+      <p>1フロアに敵が1〜3体。全フロアを突破するとクリア。チームHPが0になったら失敗で、ダンジョン選択に戻る（コンティニューなし）。</p>
+
+      <h3><span class="no">2.2</span>バトル1ターンの流れ</h3>
+      <div class="diagram"><pre class="mermaid">%%{init: {"theme": "neutral"}}%%
+flowchart LR
+  P["ルーン操作（4秒）"] --> M["消去・落ちコン"]
+  M --> AT["攻撃・回復"]
+  AT --> EN["敵の行動"]
+  EN --> P</pre></div>
+    </section>
+
+    <!-- ===================== 3 ===================== -->
+    <section id="s3">
+      <h2><span class="no">3</span>パズル仕様</h2>
+
+      <h3><span class="no">3.1</span>盤面とルーン</h3>
+      <p>盤面は横6列×縦5行の30マス。ルーンは6種類。色だけでは見分けにくい人のために、すべてのルーンに形のマークをつける。</p>
+      <div class="table-wrap"><table>
+        <tr><th>ルーン</th><th>色</th><th>マーク</th><th>役割</th></tr>
+        <tr><td class="nowrap"><span class="rune" style="--c:var(--flare)">紅</span>フレア</td><td>赤</td><td>三角</td><td>紅属性キャラの攻撃</td></tr>
+        <tr><td class="nowrap"><span class="rune" style="--c:var(--aqua)">蒼</span>アクア</td><td>青</td><td>しずく</td><td>蒼属性キャラの攻撃</td></tr>
+        <tr><td class="nowrap"><span class="rune" style="--c:var(--leaf)">翠</span>リーフ</td><td>緑</td><td>ひし形</td><td>翠属性キャラの攻撃</td></tr>
+        <tr><td class="nowrap"><span class="rune lt" style="--c:var(--lux)">輝</span>ルクス</td><td>金</td><td>星</td><td>輝属性キャラの攻撃</td></tr>
+        <tr><td class="nowrap"><span class="rune" style="--c:var(--nox)">冥</span>ノクス</td><td>紫</td><td>三日月</td><td>冥属性キャラの攻撃</td></tr>
+        <tr><td class="nowrap"><span class="rune" style="--c:var(--life)">命</span>ライフ</td><td>桃</td><td>ハート</td><td>チームHPの回復</td></tr>
+      </table></div>
+
+      <h3><span class="no">3.2</span>操作ルール</h3>
+      <ul>
+        <li>盤面のルーンを1つ指でつかみ、そのまま盤面上を自由に動かせる。指が通ったマスのルーンと位置が入れ替わる。</li>
+        <li>操作時間は4.0秒。指が触れた瞬間ではなく、最初に入れ替えが起きた瞬間から数え始める（つかんだまま考えるのはタダ）。</li>
+        <li>指を離すか、時間切れで確定する。</li>
+        <li>残り1秒で時間バーが赤くなり、時計の音が鳴る。バーは点滅させない。</li>
+        <li>つかんでいるルーンは1.2倍に大きくし、指で隠れないよう指の位置より40px上に表示する。</li>
+        <li>斜め移動は最初のバージョンでは入れない（上下左右のみ）。v1.1で対応する。</li>
+      </ul>
+
+      <h3><span class="no">3.3</span>消去ルール</h3>
+      <ul>
+        <li>同じルーンが縦か横に3つ以上まっすぐ並ぶと消える。</li>
+        <li>消える並び同士が同じ色で上下左右につながっていれば、L字・T字・十字でもまとめて1コンボ。</li>
+        <li>消えたあと、上のルーンが落ちてきて、空いたところに新しいルーンが降ってくる。そこで新しくそろえば「落ちコン」として続けて消える。</li>
+        <li>1ターンのコンボ数は、消えたグループの数の合計（落ちコン込み）。</li>
+        <li>初期盤面は、最初からそろっている所がないように作る。</li>
+        <li>新しいルーンの色はランダム。ただし乱数は「シード付き」にして、同じシードなら同じ盤面を再現できるようにする（バグ調査用）。</li>
+      </ul>
+
+      <h3><span class="no">3.4</span>特別な消し方</h3>
+      <div class="table-wrap"><table>
+        <tr><th>名前</th><th>条件</th><th>効果</th></tr>
+        <tr><td>クロス</td><td>5個を十字の形で消す</td><td>命なら回復量2倍。それ以外はその攻撃が敵の防御を無視する</td></tr>
+        <tr><td>ライン</td><td>横一列6個をまとめて消す</td><td>その色のキャラの攻撃が敵全体への攻撃になる</td></tr>
+        <tr><td>コア</td><td>3×3の正方形（9個）で消す</td><td>消したあと、同じ色の強化ルーンが盤面に3個生まれる</td></tr>
+      </table></div>
+
+      <h3><span class="no">3.5</span>強化ルーンと妨害ルーン</h3>
+      <ul>
+        <li><strong>強化ルーン</strong>：縁が光っているルーン。1個消すごとにその色の攻撃が6%上がる。オーバードライブやスキル、コア消しで生まれる。</li>
+        <li><strong>妨害ルーン（v1.1以降）</strong>：ロック（動かせない。消すと解除）、毒（消すとHPが減る）、暗闇（2ターンの間、種類が見えない）。ボス戦のギミックに使う。</li>
+      </ul>
+    </section>
+
+    <!-- ===================== 4 ===================== -->
+    <section id="s4">
+      <h2><span class="no">4</span>バトル仕様</h2>
+
+      <h3><span class="no">4.1</span>パーティ</h3>
+      <ul>
+        <li>5体編成（リーダー1体＋サブ4体）。</li>
+        <li>キャラは紅・蒼・翠・輝・冥の5属性のどれか。命はキャラの属性にはならない。</li>
+        <li>チームHPは5体のHPの合計。回復力は5体の回復値の合計。</li>
+      </ul>
+
+      <h3><span class="no">4.2</span>攻撃の流れ</h3>
+      <p>消したルーンと同じ属性のキャラが攻撃する。命ルーンを消すとチームHPが回復する。攻撃は合計コンボ数の表示のあと、紅→蒼→翠→輝→冥の順に0.08秒ずつずらして飛ばす。</p>
+
+      <h3><span class="no">4.3</span>ダメージ計算</h3>
+      <div class="formula">キャラ1体の攻撃 ＝ 攻撃力 × 消去倍率 × コンボ倍率 × 属性相性 × リーダー倍率 × 強化倍率 × OD倍率</div>
+      <div class="table-wrap"><table>
+        <tr><th>倍率</th><th>決め方</th><th>例</th></tr>
+        <tr><td>消去倍率</td><td>その色の各グループについて「1 ＋（個数 − 3）× 0.25」を足し合わせる</td><td class="num">3個＝1.0、4個＝1.25</td></tr>
+        <tr><td>コンボ倍率</td><td>1 ＋（コンボ数 − 1）× 0.25</td><td class="num">8コンボ＝2.75</td></tr>
+        <tr><td>属性相性</td><td>有利2.0、不利0.5、それ以外1.0（4.4）</td><td class="num">紅→翠＝2.0</td></tr>
+        <tr><td>リーダー倍率</td><td>リーダースキルの効果</td><td class="num">紅属性2.5倍</td></tr>
+        <tr><td>強化倍率</td><td>1 ＋ 強化ルーンの数 × 0.06</td><td class="num">3個＝1.18</td></tr>
+        <tr><td>OD倍率</td><td>オーバードライブ中は1.5、普段は1.0</td><td class="num">1.5</td></tr>
+        <tr><td>共鳴・プリズム</td><td>発動したらさらに×1.2／×1.5（4.8）</td><td class="num">1.2</td></tr>
+      </table></div>
+      <p>最後に敵の防御を引く（最低1ダメージ）。回復量は「回復力 × 命の消去倍率 × コンボ倍率」。</p>
+      <div class="rule-box calc">
+        <p><strong>計算例</strong></p>
+        <p>攻撃力1,000の紅キャラ。紅を3個と4個の2グループ消し、全体で8コンボ。敵は翠属性（紅が有利）、リーダー倍率2.5、強化ルーンなし。</p>
+        <p>消去倍率＝1.0＋1.25＝2.25　コンボ倍率＝1＋7×0.25＝2.75</p>
+        <p>1,000 × 2.25 × 2.75 × 2.0 × 2.5 ＝ 30,937（小数点以下切り捨て）</p>
+      </div>
+
+      <h3><span class="no">4.4</span>属性相性</h3>
+      <p>紅は翠に、翠は蒼に、蒼は紅に強い三すくみ。輝と冥はお互いに強い。</p>
+      <div class="table-wrap"><table>
+        <tr><th>攻撃する側</th><th>有利な相手（2.0）</th><th>不利な相手（0.5）</th></tr>
+        <tr><td><span class="rune" style="--c:var(--flare)">紅</span></td><td>翠</td><td>蒼</td></tr>
+        <tr><td><span class="rune" style="--c:var(--aqua)">蒼</span></td><td>紅</td><td>翠</td></tr>
+        <tr><td><span class="rune" style="--c:var(--leaf)">翠</span></td><td>蒼</td><td>紅</td></tr>
+        <tr><td><span class="rune lt" style="--c:var(--lux)">輝</span></td><td>冥</td><td>なし</td></tr>
+        <tr><td><span class="rune" style="--c:var(--nox)">冥</span></td><td>輝</td><td>なし</td></tr>
+      </table></div>
+
+      <h3><span class="no">4.5</span>敵</h3>
+      <ul>
+        <li>持っている値：HP、防御、攻撃力、属性、行動カウント。</li>
+        <li>行動カウントは頭の上に数字で出す。毎ターン1減り、0になると攻撃して元の数に戻る。</li>
+        <li>ボスは行動パターンを持つ（例：3ターン目に大技、HPが50%を切ると怒り状態）。</li>
+        <li>登場直後に先制攻撃してくるボスもいる。</li>
+      </ul>
+
+      <h3><span class="no">4.6</span>スキル</h3>
+      <ul>
+        <li><strong>アクティブスキル</strong>：ターンが経つとたまる（例：8ターン）。たまるとアイコンが光り、タップで発動。発動時はカットイン演出（5.6）。例：盤面の命を紅に変える／盤面を作り直す／次のターンの操作時間＋3秒。</li>
+        <li><strong>リーダースキル</strong>：リーダーにしたキャラだけ有効で、常に効いている。例：紅属性の攻撃2.5倍／6コンボ以上で全員の攻撃3倍。</li>
+      </ul>
+
+      <h3><span class="no">4.7</span>オーバードライブ（OD）</h3>
+      <ul>
+        <li>発動条件：1ターンで10コンボ以上（落ちコン込み）。</li>
+        <li>画面上部のODゲージが、そのターンのコンボ数に合わせて伸びていく（10で満タン）。ゲージはターンをまたいでは貯まらない。</li>
+        <li>OD中（次の1ターン）：盤面のルーンが全部強化ルーンになる／操作時間＋2秒／攻撃1.5倍／降ってくるルーンが同じ色になりやすい（落ちコンが起きやすい）。</li>
+        <li>OD中にもう一度10コンボを出すとODが続く。最大3ターン。</li>
+      </ul>
+
+      <h3><span class="no">4.8</span>共鳴とプリズム</h3>
+      <ul>
+        <li><strong>共鳴</strong>：同じ色を1ターンに3グループ以上消すと発動。その色のキャラの攻撃が1発にまとまり、大きな一撃として飛ぶ。攻撃×1.2。</li>
+        <li><strong>プリズム</strong>：1ターンで6種類すべてのルーンを消すと発動。全員の攻撃×1.5。</li>
+      </ul>
+    </section>
+
+    <!-- ===================== 5 ===================== -->
+    <section id="s5">
+      <h2><span class="no">5</span>演出設計</h2>
+      <p>このゲームの気持ちよさの半分以上は演出が作る。この章では「何を、いつ、どれくらい強く」見せるかを決める。</p>
+
+      <h3><span class="no">5.1</span>演出の4原則</h3>
+      <ul>
+        <li><strong>溜めて、放って、余韻</strong>：大きな演出は「溜め（0.2〜0.5秒）→炸裂（一瞬）→余韻（0.5〜1秒）」で作る。炸裂だけだと、派手でも印象に残らない。</li>
+        <li><strong>だんだん強く</strong>：同じ演出をくり返さず、コンボが増えるごとに一段ずつ強くする。音程が上がり、揺れが大きくなり、色と文字が増える。</li>
+        <li><strong>止めて、強く</strong>：大きな一撃の瞬間に画面を0.05〜0.15秒だけ止める（ヒットストップ）。止まった一瞬が「重さ」になる。</li>
+        <li><strong>音・画・振動は同じ瞬間に</strong>：3つがずれると気持ちよさが一気に落ちる。すべての演出を一つのタイムライン（8.2の演出ディレクター）から鳴らす。</li>
+      </ul>
+
+      <h3><span class="no">5.2</span>コンボ段階表</h3>
+      <p>演出の強さは5段階。冒頭のデモはこの表の値で動いている。</p>
+      <div class="table-wrap"><table class="wide">
+        <tr><th>段階</th><th>コンボ</th><th>表示</th><th>効果音</th><th>画面揺れ</th><th>光と粒子</th><th>BGM</th><th>振動</th></tr>
+        <tr><td>T0<span class="tbar" style="--v:.08;--b:#7C74B8"></span></td><td class="num">1〜2</td><td>数字のみ</td><td>消去音（音程が1つずつ上がる）</td><td class="num">なし</td><td>粒子8個</td><td>第1層のみ</td><td class="num">なし</td></tr>
+        <tr><td>T1<span class="tbar" style="--v:.25;--b:var(--aqua)"></span></td><td class="num">3〜4</td><td>GOOD</td><td>消去音を少し大きく</td><td class="num">2px</td><td>粒子16個</td><td>＋ドラム</td><td class="num">10ms</td></tr>
+        <tr><td>T2<span class="tbar" style="--v:.45;--b:var(--leaf)"></span></td><td class="num">5〜6</td><td>GREAT</td><td>＋キラキラ音を重ねる</td><td class="num">4px</td><td>粒子24個＋光の輪</td><td>＋アルペジオ</td><td class="num">15ms</td></tr>
+        <tr><td>T3<span class="tbar" style="--v:.7;--b:var(--lux)"></span></td><td class="num">7〜9</td><td>AMAZING</td><td>＋低音の「ドンッ」</td><td class="num">6px</td><td>粒子32個＋背景が属性色に染まる</td><td>＋リード</td><td class="num">20ms</td></tr>
+        <tr><td>T4<span class="tbar" style="--v:1;--b:linear-gradient(90deg,var(--flare),var(--lux),var(--leaf),var(--aqua),var(--nox),var(--life))"></span></td><td class="num">10〜</td><td>OVERDRIVE</td><td>OD専用ジングル</td><td class="num">10px＋ヒットストップ</td><td>粒子48個＋淡い虹色のフラッシュ1回</td><td>全パート＋コーラス</td><td class="num">40ms×3</td></tr>
+      </table></div>
+      <ul>
+        <li><strong>消去音の音程</strong>：1コンボ目をドにして、「ド・レ・ミ・ソ・ラ」（メジャーペンタトニック）で1つずつ上がり、5つ上がるごとに1オクターブ上へ。この音階はどの順で鳴っても濁らないので、BGMと同じキーにしておけば必ず気持ちよく響く。</li>
+        <li><strong>コンボの間隔</strong>：最初は0.25秒。1コンボごとに10%ずつ短くなり、最短0.12秒。連鎖が続くほどリズムが速くなって勢いが増す。</li>
+      </ul>
+
+      <h3><span class="no">5.3</span>1ターンのタイムライン</h3>
+      <div class="table-wrap"><table>
+        <tr><th>時間</th><th>出来事</th></tr>
+        <tr><td class="num">0.00秒</td><td>指を離す。盤面が一瞬だけ沈む（98%に縮んで戻る、0.08秒）</td></tr>
+        <tr><td class="num">0.10秒</td><td>1コンボ目：そろったルーンが白く光って膨らむ（0.10秒）→弾けて粒子が飛ぶ。消えた場所に小さく「1」</td></tr>
+        <tr><td class="num">＋0.25秒ごと</td><td>2コンボ目以降。間隔はだんだん短くなる（5.2）</td></tr>
+        <tr><td>消去が終わったら</td><td>落下（0.20秒）。加速しながら落ち、着地で小さく弾む。着地音「コトッ」</td></tr>
+        <tr><td>落ちコンがあれば</td><td>消去→落下をくり返す</td></tr>
+        <tr><td class="num">全部終わって＋0.30秒</td><td>合計「○ COMBO」を画面中央にハンコのように押す（大きく出て縮む）</td></tr>
+        <tr><td class="num">＋0.40秒</td><td>攻撃：キャラから敵へ光の弾が飛ぶ（0.35秒、属性順に0.08秒ずつずらす）</td></tr>
+        <tr><td>着弾</td><td>ダメージ数字が跳ねて出る（0.4秒）。敵がのけぞる</td></tr>
+        <tr><td>撃破したとき</td><td>ヒットストップ0.12秒→スロー（0.5倍速で0.6秒）→敵が光の粒になって崩れる→報酬が落ちる</td></tr>
+        <tr><td>次へ</td><td>敵の行動（行動カウントが0なら攻撃）→次のターン</td></tr>
+      </table></div>
+      <p>普通のターンは3〜6秒に収める。長いと感じる人は、設定の「演出速度」で短くできる（5.11）。</p>
+
+      <h3><span class="no">5.4</span>オーバードライブ発動の絵コンテ</h3>
+      <ol class="story">
+        <li><strong>時間停止（0.30秒）</strong>：10コンボ目が弾けた瞬間、すべての動きが止まり、画面が暗く、色が抜ける。BGMも一瞬無音に。</li>
+        <li><strong>亀裂（0.30秒）</strong>：画面の中央から光の線が放射状に走る。</li>
+        <li><strong>文字が飛び込む（0.35秒）</strong>：「OVERDRIVE」の文字が奥から手前に飛び込んできて止まる。同時に低音の「ドーン」と振動。</li>
+        <li><strong>色が戻る</strong>：淡い虹色のフラッシュが1回だけ。真っ白な強い光にはしない。</li>
+        <li><strong>強化の波（0.50秒）</strong>：盤面のルーンが下の行から順に強化ルーン（光る縁）へ変わっていく。</li>
+        <li><strong>全開</strong>：BGMが全パート＋コーラスに。背景がオーロラのようにゆっくり色を変え、画面の縁がBGMのテンポに合わせて脈打つ。</li>
+      </ol>
+      <p>2回目以降は、タップで1〜3を飛ばせる。</p>
+
+      <h3><span class="no">5.5</span>ボス登場</h3>
+      <p>暗転→敵の属性色の「WARNING」帯が上下から流れてくる→心臓の音が2回→ボスのシルエット→光が当たって姿が現れ、名前が出る。合計2.5秒。同じボスの2回目以降はタップで飛ばせる。</p>
+
+      <h3><span class="no">5.6</span>スキルのカットイン</h3>
+      <p>画面を斜めに横切る帯に、キャラの絵とスキル名を出す。0.8秒。その間は背景の時間を止める。帯の色はキャラの属性色。</p>
+
+      <h3><span class="no">5.7</span>共鳴とプリズム</h3>
+      <ul>
+        <li><strong>共鳴</strong>：その色のキャラの攻撃弾が空中で1つに合体し、太い光線になって飛ぶ。効果音は消去音を3つ重ねた和音。</li>
+        <li><strong>プリズム</strong>：6色の光の帯が画面を横切り、6つの音が順に鳴って和音になる。</li>
+      </ul>
+
+      <h3><span class="no">5.8</span>ダメージ数字</h3>
+      <ul>
+        <li>属性の色で表示する。有利な属性のときは小さく「WEAK!」を添える。</li>
+        <li>数字は0.3秒でカウントアップする（パラパラと増える）。</li>
+        <li>桁が多いほど大きく出す。10万を超えたら、出る瞬間に小さなヒットストップを入れる。</li>
+      </ul>
+
+      <h3><span class="no">5.9</span>サウンド</h3>
+      <p><strong>BGM（コンボで盛り上がる）</strong>：同じテンポ・同じ長さの4つのパートを同時に再生し、音量だけを上げ下げする。</p>
+      <div class="table-wrap"><table>
+        <tr><th>層</th><th>中身</th><th>鳴り始める段階</th></tr>
+        <tr><td>第1層</td><td>ベース＋パッド</td><td>常に</td></tr>
+        <tr><td>第2層</td><td>ドラム</td><td>T1（3コンボ）</td></tr>
+        <tr><td>第3層</td><td>シンセのアルペジオ</td><td>T2（5コンボ）</td></tr>
+        <tr><td>第4層</td><td>リード＋コーラス</td><td>T3（7コンボ）。ODで最大音量</td></tr>
+      </table></div>
+      <ul>
+        <li>上がった層は、ターン終了から2秒後に1秒かけて元に戻る。</li>
+        <li>制作：Sunoでバトル曲を作り、パートごとに分けて書き出す（ステム分離）。4つのファイルは同じ長さ・同じBPM（例：140）にそろえ、8小節か16小節でループ地点をきれいに切る。</li>
+      </ul>
+      <p><strong>効果音</strong></p>
+      <div class="table-wrap"><table>
+        <tr><th>場面</th><th>音のイメージ</th></tr>
+        <tr><td>ルーンをつかむ</td><td>軽い「ポン」</td></tr>
+        <tr><td>入れ替え</td><td>小さな「カチッ」。連続しても耳が疲れない短さ</td></tr>
+        <tr><td>消去</td><td>音程が上がっていくきらめき（5.2）</td></tr>
+        <tr><td>着地</td><td>「コトッ」</td></tr>
+        <tr><td>合計コンボ表示</td><td>ハンコの「ドンッ」</td></tr>
+        <tr><td>攻撃</td><td>属性ごとの発射音（5種）</td></tr>
+        <tr><td>着弾</td><td>重めの打撃音</td></tr>
+        <tr><td>撃破</td><td>ガラスが砕けるような音</td></tr>
+        <tr><td>OD発動</td><td>専用ジングル（約2秒）</td></tr>
+        <tr><td>ボス警告</td><td>低い警報音＋心臓の音</td></tr>
+      </table></div>
+      <ul>
+        <li>音はWeb Audio APIで鳴らす。タップから音が出るまでの遅れが小さく、音程も自由に変えられる。同時に鳴らす音は12個まで。</li>
+        <li>スマホのブラウザは、最初にタップするまで音が出ない決まりがある。タイトル画面の「タップしてはじめる」で音を有効にする。</li>
+      </ul>
+
+      <h3><span class="no">5.10</span>振動</h3>
+      <p>Androidのブラウザは振動（<code>navigator.vibrate</code>）が使えるが、iPhoneのブラウザは使えない。振動は「あるとうれしいおまけ」とし、振動なしでも成立する演出にする。</p>
+
+      <h3><span class="no">5.11</span>遊ぶ人への配慮（設定画面）</h3>
+      <ul>
+        <li><strong>演出速度</strong>：標準／高速（1.5倍）／最速（2倍・カットイン省略）。</li>
+        <li><strong>画面揺れ</strong>：オン／オフ。</li>
+        <li><strong>フラッシュ軽減</strong>：全画面の光を半分以下の明るさにし、点滅をなくす。端末の「視差効果を減らす」がオンなら、最初からオンにする。</li>
+        <li><strong>点滅の上限</strong>：どの演出でも、光の点滅は1秒に3回まで（光に敏感な人への配慮）。</li>
+        <li><strong>色の区別</strong>：全ルーンに形のマークをつける（3.1）。</li>
+      </ul>
+    </section>
+
+    <!-- ===================== 6 ===================== -->
+    <section id="s6">
+      <h2><span class="no">6</span>ビジュアルと画面</h2>
+
+      <h3><span class="no">6.1</span>アートの方向性</h3>
+      <p>テーマは「夜の祭壇に浮かぶ宝石」。背景は暗く色を抑え、ルーンとエフェクトだけが鮮やかに光る。背景が地味なほど演出が映える。光は加算合成（重なるほど明るくなる描き方）で表現する。キャラと敵の絵はMidjourneyで描き、背景を切り抜いて使う。</p>
+
+      <h3><span class="no">6.2</span>画面レイアウト</h3>
+      <div class="screen-plan">
+        <div class="wire" role="img" aria-label="縦持ち画面の割り付け。上から敵エリア38%、パーティ帯12%、盤面50%">
+          <div class="w-enemy"><b>敵エリア 38%</b>敵の絵・HP<br>行動カウント</div>
+          <div class="w-party"><b>パーティ 12%</b>5体・チームHP</div>
+          <div class="w-board"><b>盤面 50%</b>6×5のルーン<br>操作時間バー</div>
+        </div>
+        <ul>
+          <li>縦持ち。上から敵エリア38%、パーティ帯12%、盤面50%。</li>
+          <li>盤面は親指が届く下半分に固定。横幅いっぱい（左右に4%の余白）で、マスは正方形。</li>
+          <li>iPhoneの切り欠きやホームバーにかからないよう、上下はセーフエリアを空ける。</li>
+          <li>ブラウザでは画面の向きを固定できないので、横向きにされたら「縦にしてね」の表示を出す。</li>
+        </ul>
+      </div>
+
+      <h3><span class="no">6.3</span>高解像度でくっきり見せる</h3>
+      <ul>
+        <li>Canvasは画面の実際のピクセル数（<code>devicePixelRatio</code>、上限3）で描く。これをしないとスマホでは全体がぼやける。</li>
+        <li>ルーンは画像ファイルではなく、コードで描く図形にする。どんな画面でもくっきりで、ファイルも軽い。</li>
+        <li>毎フレーム図形を描き直すと重いので、起動時に6種のルーンを一度だけ高解像度で描いて保存しておき（キャッシュ）、あとはそれを貼るだけにする。冒頭のデモもこの方法で描いている。</li>
+        <li>キャラ・敵の絵は表示サイズの2倍くらいで用意し、WebP形式で1枚200KB以下を目安にする。</li>
+        <li>目標は秒間60フレーム。動きは「経過時間」で計算し、120Hzの端末でも速くならないようにする。</li>
+      </ul>
+
+      <h3><span class="no">6.4</span>必要な素材</h3>
+      <div class="table-wrap"><table>
+        <tr><th>素材</th><th>数</th><th>作り方</th></tr>
+        <tr><td>ルーン</td><td>6種＋強化版</td><td>コードで描く</td></tr>
+        <tr><td>キャラの絵</td><td>10体</td><td>Midjourney→切り抜き→WebP</td></tr>
+        <tr><td>敵の絵</td><td>15種＋ボス5体</td><td>同上</td></tr>
+        <tr><td>背景</td><td>3種（ダンジョンごと）</td><td>Midjourney。暗めに加工</td></tr>
+        <tr><td>BGM</td><td>バトル2曲、ボス1曲、ホーム1曲</td><td>Suno→パートごとに分ける</td></tr>
+        <tr><td>効果音</td><td>約20種</td><td>フリー素材、またはWeb Audioで合成</td></tr>
+        <tr><td>フォント</td><td>2種</td><td>Google Fonts</td></tr>
+      </table></div>
+      <p>単一HTMLに画像をBase64で埋め込む場合、合計が大きくなってきたら画像だけ別ファイルに分ける。</p>
+    </section>
+
+    <!-- ===================== 7 ===================== -->
+    <section id="s7">
+      <h2><span class="no">7</span>進行とコンテンツ（最初のバージョン）</h2>
+      <ul>
+        <li>ダンジョン5つ。1ダンジョンは3〜5フロアで、最後のフロアがボス。</li>
+        <li>キャラ10体（5属性×2体）。ダンジョンをクリアすると1体ずつ仲間になる。</li>
+        <li>育成はレベルのみ（最大50、敵を倒すと経験値）。</li>
+        <li>進行データは端末内（<code>localStorage</code>）に保存する。</li>
+      </ul>
+      <div class="table-wrap"><table>
+        <tr><th>ダンジョン</th><th>クリアに必要な目安</th><th>新しく出てくる要素</th></tr>
+        <tr><td class="num">1</td><td>3コンボ</td><td>基本操作のチュートリアル</td></tr>
+        <tr><td class="num">2</td><td>4〜5コンボ</td><td>属性相性</td></tr>
+        <tr><td class="num">3</td><td>6コンボ</td><td>ボスの行動パターン</td></tr>
+        <tr><td class="num">4</td><td>7〜8コンボ</td><td>先制攻撃・高防御の敵</td></tr>
+        <tr><td class="num">5</td><td>10コンボ（OD前提）</td><td>オーバードライブを使いこなす</td></tr>
+      </table></div>
+      <p>ガチャ、課金、オンライン対戦、ランキングは最初のバージョンには入れない（v2以降で検討）。</p>
+    </section>
+
+    <!-- ===================== 8 ===================== -->
+    <section id="s8">
+      <h2><span class="no">8</span>技術設計</h2>
+
+      <h3><span class="no">8.1</span>構成</h3>
+      <div class="table-wrap"><table>
+        <tr><th>項目</th><th>使うもの</th><th>理由</th></tr>
+        <tr><td>ファイル</td><td>単一HTML（HTML/CSS/JS）</td><td>1ファイルで完結し、Vercelにそのまま置ける</td></tr>
+        <tr><td>盤面・演出</td><td>Canvas 2D</td><td>光の加算合成、粒子、揺れを自由に描ける</td></tr>
+        <tr><td>ボタン・HPバー・メニュー</td><td>普通のHTML要素を盤面の上に重ねる</td><td>文字がくっきりして、作りやすい</td></tr>
+        <tr><td>音</td><td>Web Audio API</td><td>遅れが小さく、音程を自由に変えられる</td></tr>
+        <tr><td>保存</td><td>localStorage</td><td>サーバーがいらない</td></tr>
+        <tr><td>公開</td><td>GitHub→Vercel</td><td>push するだけで更新される</td></tr>
+        <tr><td>外部ライブラリ</td><td>使わない</td><td>中身を全部自分で読める。npmの心配もない</td></tr>
+      </table></div>
+      <p>粒子が多すぎて重くなったら、描画の部分だけPixiJS（WebGL）に置き換える選択肢がある。8.2のルールを守っておけば、計算の部分はそのまま使える。</p>
+
+      <h3><span class="no">8.2</span>一番大事なルール：計算と演出を分ける</h3>
+      <div class="rule-box">
+        <p>指を離した瞬間に、そのターンの結果（どこが消えて、何コンボで、何ダメージか）を一気に全部計算してしまう。結果は「出来事リスト」にまとめ、演出係（演出ディレクター）がそれを上から順に、時間をかけて再生する。</p>
+      </div>
+      <ul>
+        <li>計算だけを確かめられるので、バグが見つけやすい。</li>
+        <li>演出速度の変更やスキップが簡単（再生のスピードを変えるだけ）。</li>
+        <li>演出をどれだけ派手にしても、計算が狂わない。</li>
+      </ul>
+      <div class="diagram"><pre class="mermaid">%%{init: {"theme": "neutral"}}%%
+flowchart LR
+  IN["指の操作"] --> CALC["パズル・バトルの計算"]
+  CALC --> EV["出来事リスト"]
+  EV --> DIR["演出ディレクター"]
+  DIR --> R["描画（Canvas）"]
+  DIR --> S["音（Web Audio）"]
+  DIR --> V["振動"]
+  DIR --> UI["HPバーなどのUI"]</pre></div>
+<pre><code>// 指を離した瞬間に作る「出来事リスト」の例（cells は [行, 列]）
+[
+  { type: "match", combo: 1, color: "flare", cells: [[4,0],[4,1],[4,2]] },
+  { type: "match", combo: 2, color: "aqua",  cells: [[2,5],[3,5],[4,5]] },
+  { type: "fall" },
+  { type: "match", combo: 3, color: "flare", cells: [[1,1],[1,2],[1,3]], cascade: true },
+  { type: "comboTotal", count: 3, tier: 1 },
+  { type: "attack", member: 0, damage: 4200 },
+  { type: "defeat", enemy: 0 }
+]
+
+// 演出ディレクター：出来事を1つずつ、決めた時間をかけて再生する
+// （await は「この演出が終わるまで待つ」という意味）
+async function playEvents(events) {
+  for (const ev of events) {
+    if (ev.type === "match")      await fx.burst(ev);   // 光る→弾ける→音
+    if (ev.type === "fall")       await fx.fall(ev);
+    if (ev.type === "comboTotal") await fx.stamp(ev);
+    if (ev.type === "attack")     await fx.attack(ev);
+    if (ev.type === "defeat")     await fx.defeat(ev);
+  }
+}</code></pre>
+
+      <h3><span class="no">8.3</span>コードの区分け</h3>
+      <p>1ファイルでも、次の見出しコメントで区切っておけば、Cmd+Fで「===== MATCH」と打つだけで目的の場所に飛べる。AIに頼むときも「MATCHの部分を直して」と言える。</p>
+      <div class="table-wrap"><table>
+        <tr><th>見出し</th><th>中身</th></tr>
+        <tr><td><code>// ===== CONFIG =====</code></td><td>調整用の数値（第10章）</td></tr>
+        <tr><td><code>// ===== BOARD =====</code></td><td>盤面データ、初期盤面の生成</td></tr>
+        <tr><td><code>// ===== MATCH =====</code></td><td>消去判定、コンボのグループ分け</td></tr>
+        <tr><td><code>// ===== FALL =====</code></td><td>落下と補充</td></tr>
+        <tr><td><code>// ===== BATTLE =====</code></td><td>ダメージ計算、敵の行動</td></tr>
+        <tr><td><code>// ===== DIRECTOR =====</code></td><td>出来事リストを時間どおりに再生</td></tr>
+        <tr><td><code>// ===== FX =====</code></td><td>粒子、揺れ、フラッシュ、文字</td></tr>
+        <tr><td><code>// ===== RENDER =====</code></td><td>Canvasへの描画</td></tr>
+        <tr><td><code>// ===== AUDIO =====</code></td><td>BGMの層、効果音</td></tr>
+        <tr><td><code>// ===== INPUT =====</code></td><td>指の操作</td></tr>
+        <tr><td><code>// ===== SCENE =====</code></td><td>画面の切り替え（タイトル／ホーム／バトル／結果）</td></tr>
+        <tr><td><code>// ===== SAVE =====</code></td><td>保存と読み込み</td></tr>
+      </table></div>
+
+      <h3><span class="no">8.4</span>データの形</h3>
+<pre><code>// 盤面：board[行][列]。行は上から0〜4、列は左から0〜5
+const board = [
+  [ { color: "flare", plus: false }, { color: "aqua", plus: false }, /* …全部で6個 */ ],
+  /* …全部で5行 */
+];
+
+// キャラ
+const chara = {
+  id: "c001",
+  name: "焔の剣士アカネ",
+  attr: "flare",
+  hp: 1200, atk: 850, rcv: 120,
+  skill:  { name: "紅蓮変換", turns: 8, type: "convert", from: "life", to: "flare" },
+  leader: { name: "紅蓮の誓い", type: "attrBoost", attr: "flare", mult: 2.5 },
+};</code></pre>
+
+      <h3><span class="no">8.5</span>消去判定のしくみ</h3>
+      <ol>
+        <li>横に見て、同じ色が3つ以上続いている所に「消す印」をつける。</li>
+        <li>縦も同じように印をつける。</li>
+        <li>印がついたマスのうち、上下左右でつながっている同じ色をひとまとめにする（＝1コンボ）。この方法を「塗りつぶし（フラッドフィル）」と呼ぶ。</li>
+        <li>まとまりの数をコンボとして数え、消えたマスを空にする。</li>
+      </ol>
+<pre><code>// 手順1：横方向に、同じ色が3つ並んでいるマスに印をつける
+function markHorizontal(board, marks) {
+  for (let row = 0; row &lt; 5; row++) {
+    for (let col = 0; col &lt; 4; col++) {   // 右に2つ先まで見るので col は 0〜3
+      const c = board[row][col].color;
+      if (c === board[row][col + 1].color &amp;&amp; c === board[row][col + 2].color) {
+        marks[row][col] = true;
+        marks[row][col + 1] = true;
+        marks[row][col + 2] = true;
+      }
+    }
+  }
+}</code></pre>
+      <p><code>col &lt; 4</code> がポイント。<code>col + 2</code> まで見るので、列5をはみ出さないように0〜3で止めている。4つ以上並んでいる場合も、ずらしながら何度も印をつけるので全部に印がつく。</p>
+
+      <h3><span class="no">8.6</span>動作を軽く保つ</h3>
+      <ul>
+        <li><strong>粒子は使い回す</strong>：最初に500個作っておき、消えたものを再利用する。毎回作って捨てると、ブラウザのメモリ掃除が走ってカクつく。</li>
+        <li>同時に出す粒子は400個まで。</li>
+        <li>光のぼかし（<code>shadowBlur</code>）は重いので粒子には使わない。かわりに、あらかじめ描いておいた「光の玉」を加算合成で重ねる。</li>
+        <li>1秒間の平均が45フレームを下回ったら、自動で軽量モード（粒子半分・背景のオーロラなし）に切り替える。</li>
+        <li>アプリが裏に回ったら（<code>visibilitychange</code>）、描画と音を止める。</li>
+      </ul>
+
+      <h3><span class="no">8.7</span>指の操作</h3>
+      <ul>
+        <li>Pointer Events（<code>pointerdown</code>／<code>pointermove</code>／<code>pointerup</code>）を使う。タッチもマウスも同じコードで動く。</li>
+        <li>盤面の上でスクロールや拡大が起きないよう、CSSで <code>touch-action: none</code> を指定する。</li>
+        <li>指が盤面の外に出ても操作が途切れないよう、<code>setPointerCapture</code> を使う。</li>
+      </ul>
+
+      <h3><span class="no">8.8</span>PWA化（仕上げのとき）</h3>
+      <p><code>manifest.json</code> とアイコンを足すと、ホーム画面から全画面で起動できる。オフラインでも動かしたいときは service worker も足す。この3つだけは別ファイルになるが、ゲーム本体は単一HTMLのままでいい。</p>
+    </section>
+
+    <!-- ===================== 9 ===================== -->
+    <section id="s9">
+      <h2><span class="no">9</span>開発ロードマップ</h2>
+      <p>1フェーズずつ「動いた」を確認してから GitHub にコミットする。見た目の作り込みは、構造ができてから（フェーズ5と7）。</p>
+      <ol class="steps">
+        <li>
+          <h4>盤面を出す</h4>
+          <p>完成の目安：6×5のルーンがスマホでくっきり表示される。</p>
+          <p class="ask">「設計書の3.1と6.3のとおり、6×5の盤面をCanvasで表示して。ルーンは画像を使わずコードで描いて、スマホでもぼやけないようにして」</p>
+        </li>
+        <li>
+          <h4>動かせる</h4>
+          <p>完成の目安：つかんで動かすと入れ替わり、4秒で自動的に確定する。</p>
+          <p class="ask">「3.2を実装して。ルーンを指でつかんで動かすと、通ったマスのルーンと入れ替わるようにして」</p>
+        </li>
+        <li>
+          <h4>消える</h4>
+          <p>完成の目安：消去・落下・落ちコンが動き、コンボ数が正しく数えられる。</p>
+          <p class="ask">「3.3と8.5を実装して。結果は8.2の『出来事リスト』として返す形にして」</p>
+        </li>
+        <li>
+          <h4>演出の土台</h4>
+          <p>完成の目安：演出ディレクターが出来事リストを再生し、T0〜T2の演出が出る。</p>
+          <p class="ask">「8.2の演出ディレクターを作って、5.2のT0〜T2まで実装して」</p>
+        </li>
+        <li>
+          <h4>バトル</h4>
+          <p>完成の目安：敵1体と戦って、勝ち負けがつく。</p>
+          <p class="ask">「4.1〜4.5を実装して。敵はまず1体、スキルはなしで」</p>
+        </li>
+        <li>
+          <h4>演出を盛る</h4>
+          <p>完成の目安：T3・T4、OD、ヒットストップ、ボス登場、BGMの層が動く。</p>
+          <p class="ask">「5.4のオーバードライブの絵コンテを実装して」</p>
+        </li>
+        <li>
+          <h4>中身を増やす</h4>
+          <p>完成の目安：ダンジョン5つ、キャラ10体、進行の保存。</p>
+          <p class="ask">「第7章の内容で、ダンジョン選択画面と保存を作って」</p>
+        </li>
+        <li>
+          <h4>仕上げ</h4>
+          <p>完成の目安：設定画面、軽量モード、PWA化、Vercelで公開。</p>
+          <p class="ask">「5.11の設定画面と8.6の軽量モードを入れて」</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- ===================== 10 ===================== -->
+    <section id="s10">
+      <h2><span class="no">10</span>調整用の数値（CONFIG）</h2>
+      <p>遊んでみて「物足りない」「長い」と感じたら、まずここの数値を変える。</p>
+      <div class="table-wrap"><table>
+        <tr><th>名前</th><th>初期値</th><th>意味</th></tr>
+        <tr><td><code>COLS</code> / <code>ROWS</code></td><td class="num">6 / 5</td><td>盤面の大きさ</td></tr>
+        <tr><td><code>MOVE_TIME</code></td><td class="num">4.0</td><td>操作時間（秒）</td></tr>
+        <tr><td><code>MATCH_MIN</code></td><td class="num">3</td><td>消えるのに必要な数</td></tr>
+        <tr><td><code>EXTRA_RUNE_BONUS</code></td><td class="num">0.25</td><td>4個目以降、1個あたりの消去倍率</td></tr>
+        <tr><td><code>COMBO_BONUS</code></td><td class="num">0.25</td><td>1コンボあたりのコンボ倍率</td></tr>
+        <tr><td><code>PLUS_BONUS</code></td><td class="num">0.06</td><td>強化ルーン1個あたりの攻撃アップ</td></tr>
+        <tr><td><code>ADV</code> / <code>DISADV</code></td><td class="num">2.0 / 0.5</td><td>属性の有利・不利</td></tr>
+        <tr><td><code>OD_COMBO</code></td><td class="num">10</td><td>ODに必要なコンボ数</td></tr>
+        <tr><td><code>OD_MULT</code></td><td class="num">1.5</td><td>OD中の攻撃倍率</td></tr>
+        <tr><td><code>OD_TIME_BONUS</code></td><td class="num">2.0</td><td>OD中に増える操作時間（秒）</td></tr>
+        <tr><td><code>OD_MAX_TURNS</code></td><td class="num">3</td><td>ODが続く最大ターン数</td></tr>
+        <tr><td><code>RESONANCE_MULT</code></td><td class="num">1.2</td><td>共鳴の倍率</td></tr>
+        <tr><td><code>PRISM_MULT</code></td><td class="num">1.5</td><td>プリズムの倍率</td></tr>
+        <tr><td><code>COMBO_INTERVAL</code></td><td class="num">0.25 → 0.12</td><td>コンボ演出の間隔（最初→最短、秒）</td></tr>
+        <tr><td><code>FALL_TIME</code></td><td class="num">0.20</td><td>落下にかかる時間（秒）</td></tr>
+        <tr><td><code>HITSTOP</code></td><td class="num">0.12</td><td>撃破時に画面を止める時間（秒）</td></tr>
+        <tr><td><code>SHAKE</code></td><td class="num">0 / 2 / 4 / 6 / 10</td><td>T0〜T4の画面揺れ（px）</td></tr>
+        <tr><td><code>PARTICLES</code></td><td class="num">8 / 16 / 24 / 32 / 48</td><td>T0〜T4の1コンボあたりの粒子数</td></tr>
+        <tr><td><code>MAX_PARTICLES</code></td><td class="num">400</td><td>同時に出す粒子の上限</td></tr>
+        <tr><td><code>DRAG_OFFSET_Y</code></td><td class="num">40</td><td>つかんだルーンを指から浮かせる距離（px）</td></tr>
+        <tr><td><code>DPR_MAX</code></td><td class="num">3</td><td>描画解像度の上限</td></tr>
+      </table></div>
+    </section>
+
+  </main>
+</div>
+
+<footer class="foot">RUNE OVERDRIVE ゲーム設計書 v0.1。数値はすべて仮で、遊びながら調整する前提。</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  // ===== 設定 =====
+  var RUNES = [
+    { base: "#FF5A3D", light: "#FFC3AD", dark: "#9A1E10", glyph: "tri" },
+    { base: "#2E9BFF", light: "#B8E0FF", dark: "#0B4A96", glyph: "drop" },
+    { base: "#2FD07A", light: "#B8F6D3", dark: "#0C743C", glyph: "diamond" },
+    { base: "#FFC93D", light: "#FFF1BF", dark: "#A06C06", glyph: "star" },
+    { base: "#9B5CFF", light: "#DDC9FF", dark: "#4A1BA3", glyph: "moon" },
+    { base: "#FF6FB5", light: "#FFD3E8", dark: "#A32163", glyph: "heart" }
+  ];
+  var TIERS = [
+    { min: 1,  label: "",          shake: 0,  parts: 8,  color: "#C9C2FF" },
+    { min: 3,  label: "GOOD",      shake: 2,  parts: 16, color: "#7FD6FF" },
+    { min: 5,  label: "GREAT",     shake: 4,  parts: 24, color: "#7CEFB0" },
+    { min: 7,  label: "AMAZING",   shake: 6,  parts: 32, color: "#FFD45E" },
+    { min: 10, label: "OVERDRIVE", shake: 10, parts: 48, color: "#FF8FB8" }
+  ];
+  var COLS = 6, ROWS = 5, TOTAL = 13, OD_AT = 10;
+  var PENTA = [0, 2, 4, 7, 9];
+  var FONT = '"Dela Gothic One", "Hiragino Sans", "Noto Sans JP", sans-serif';
+
+  var wrap = document.getElementById("demo-wrap");
+  var canvas = document.getElementById("demo");
+  var ctx = canvas.getContext("2d");
+  var playBtn = document.getElementById("demo-play");
+  var soundBtn = document.getElementById("demo-sound");
+  var motionQuery = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : null;
+  function calm() { return !!(motionQuery && motionQuery.matches); }
+
+  var W = 0, H = 0, cell = 0, hud = 0, ox = 0, oy = 0, dpr = 1;
+  var sprites = [], glows = [], board = [];
+  var pool = [];
+  for (var i = 0; i < 500; i++) pool.push({ alive: false });
+  var rings = [], timers = [], tweens = [];
+  var gameT = 0, realT = 0, last = 0, raf = 0, freeze = 0, activeUntil = 0;
+  var playing = false, combo = 0, tier = 0, od = false, odT0 = -1, odDur = 0.65;
+  var flash = 0, shake = 0, shakeX = 0, shakeY = 0, pop = 0, stamp = null;
+  var tintA = 0, tintColor = "#9B5CFF", auroraA = 0;
+  var audio = null, master = null, soundOn = false;
+
+  // ===== 小道具 =====
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+  function fallEase(t) { return t < 0.75 ? Math.pow(t / 0.75, 2) : 1 - Math.sin((t - 0.75) / 0.25 * Math.PI) * 0.06; }
+  function rgba(hex, a) { var n = parseInt(hex.slice(1), 16); return "rgba(" + ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255) + "," + a + ")"; }
+  function after(s, fn) { timers.push({ at: gameT + s, fn: fn }); }
+  function tween(o, k, a, b, d, e) { o[k] = a; tweens.push({ o: o, k: k, a: a, b: b, t0: gameT, d: d, e: e || easeOut }); }
+  function tierOf(n) { var t = 0; for (var i = 0; i < TIERS.length; i++) if (n >= TIERS[i].min) t = i; return t; }
+  function rr(g, x, y, w, h, r) {
+    g.beginPath(); g.moveTo(x + r, y);
+    g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);
+    g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+  }
+
+  // ===== ルーンの絵（起動時に一度だけ描いてキャッシュ） =====
+  function glyph(g, type, cx, cy, k) {
+    g.beginPath();
+    if (type === "tri") {
+      g.moveTo(cx, cy - k); g.lineTo(cx + k * 0.92, cy + k * 0.62); g.lineTo(cx - k * 0.92, cy + k * 0.62); g.closePath(); g.fill();
+    } else if (type === "drop") {
+      g.moveTo(cx, cy - k * 1.1);
+      g.bezierCurveTo(cx + k * 0.35, cy - k * 0.55, cx + k * 0.8, cy - k * 0.1, cx + k * 0.8, cy + k * 0.25);
+      g.arc(cx, cy + k * 0.25, k * 0.8, 0, Math.PI, false);
+      g.bezierCurveTo(cx - k * 0.8, cy - k * 0.1, cx - k * 0.35, cy - k * 0.55, cx, cy - k * 1.1);
+      g.fill();
+    } else if (type === "diamond") {
+      g.moveTo(cx, cy - k * 1.05); g.lineTo(cx + k * 0.75, cy); g.lineTo(cx, cy + k * 1.05); g.lineTo(cx - k * 0.75, cy); g.closePath(); g.fill();
+    } else if (type === "star") {
+      for (var i = 0; i < 10; i++) {
+        var r = i % 2 ? k * 0.45 : k * 1.05, a = -Math.PI / 2 + i * Math.PI / 5;
+        var x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+        if (i) g.lineTo(x, y); else g.moveTo(x, y);
+      }
+      g.closePath(); g.fill();
+    } else if (type === "heart") {
+      g.moveTo(cx, cy + k * 0.95);
+      g.bezierCurveTo(cx - k * 1.25, cy + k * 0.1, cx - k * 0.85, cy - k * 1.05, cx, cy - k * 0.45);
+      g.bezierCurveTo(cx + k * 0.85, cy - k * 1.05, cx + k * 1.25, cy + k * 0.1, cx, cy + k * 0.95);
+      g.fill();
+    } else if (type === "moon") {
+      var s = Math.ceil(k * 2.6), t = document.createElement("canvas");
+      t.width = t.height = s;
+      var h = t.getContext("2d");
+      h.fillStyle = g.fillStyle;
+      h.beginPath(); h.arc(s / 2, s / 2, k, 0, Math.PI * 2); h.fill();
+      h.globalCompositeOperation = "destination-out";
+      h.beginPath(); h.arc(s / 2 + k * 0.5, s / 2 - k * 0.32, k * 0.85, 0, Math.PI * 2); h.fill();
+      g.drawImage(t, cx - s / 2, cy - s / 2);
+    }
+  }
+  function makeSprite(c, px) {
+    var cv = document.createElement("canvas"); cv.width = cv.height = px;
+    var g = cv.getContext("2d");
+    var m = px * 0.07, s = px - m * 2, r = s * 0.3;
+    var gr = g.createRadialGradient(m + s * 0.32, m + s * 0.28, s * 0.05, m + s * 0.5, m + s * 0.5, s * 0.75);
+    gr.addColorStop(0, c.light); gr.addColorStop(0.45, c.base); gr.addColorStop(1, c.dark);
+    g.fillStyle = gr; rr(g, m, m, s, s, r); g.fill();
+    g.lineWidth = Math.max(1, px * 0.025); g.strokeStyle = "rgba(255,255,255,0.3)"; g.stroke();
+    g.save(); rr(g, m, m, s, s, r); g.clip();
+    var gl = g.createLinearGradient(0, m, 0, m + s * 0.5);
+    gl.addColorStop(0, "rgba(255,255,255,0.32)"); gl.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gl; g.beginPath(); g.ellipse(px / 2, m + s * 0.12, s * 0.42, s * 0.3, 0, 0, Math.PI * 2); g.fill();
+    g.restore();
+    g.fillStyle = "rgba(255,255,255,0.94)";
+    glyph(g, c.glyph, px / 2, px / 2 + px * 0.02, s * 0.24);
+    return cv;
+  }
+  function makeGlow(hex, px) {
+    var cv = document.createElement("canvas"); cv.width = cv.height = px;
+    var g = cv.getContext("2d");
+    var gr = g.createRadialGradient(px / 2, px / 2, 0, px / 2, px / 2, px / 2);
+    gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(0.25, rgba(hex, 1)); gr.addColorStop(1, rgba(hex, 0));
+    g.fillStyle = gr; g.fillRect(0, 0, px, px);
+    return cv;
+  }
+
+  // ===== 盤面 =====
+  function newCell(c) { return { c: c, s: 1, a: 1, dy: 0, fl: 0, plus: 0, busy: false }; }
+  function genBoard() {
+    board = [];
+    for (var r = 0; r < ROWS; r++) {
+      var row = [];
+      for (var c = 0; c < COLS; c++) {
+        var k;
+        do { k = Math.floor(Math.random() * 6); }
+        while ((c >= 2 && row[c - 1].c === k && row[c - 2].c === k) || (r >= 2 && board[r - 1][c].c === k && board[r - 2][c].c === k));
+        row.push(newCell(k));
+      }
+      board.push(row);
+    }
+  }
+  function center(r, c) { return { x: ox + c * cell + cell / 2, y: oy + r * cell + cell / 2 }; }
+
+  function resize() {
+    var w = Math.round(wrap.clientWidth);
+    if (!w) return;
+    dpr = Math.min(3, window.devicePixelRatio || 1);
+    W = w; cell = W / (COLS + 0.4); hud = cell * 1.05; ox = cell * 0.2; oy = hud;
+    H = Math.round(oy + cell * ROWS + cell * 0.2);
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    canvas.style.height = H + "px";
+    var px = Math.round(cell * dpr);
+    sprites = RUNES.map(function (c) { return makeSprite(c, px); });
+    glows = RUNES.map(function (c) { return makeGlow(c.base, Math.round(48 * dpr)); });
+    draw();
+  }
+
+  // ===== 演出の進行 =====
+  function pickLine() {
+    for (var tries = 0; tries < 60; tries++) {
+      var cells = [], horiz = Math.random() < 0.5, i;
+      if (horiz) { var r = Math.floor(Math.random() * ROWS), c0 = Math.floor(Math.random() * (COLS - 2)); for (i = 0; i < 3; i++) cells.push([r, c0 + i]); }
+      else { var c = Math.floor(Math.random() * COLS), r0 = Math.floor(Math.random() * (ROWS - 2)); for (i = 0; i < 3; i++) cells.push([r0 + i, c]); }
+      if (cells.every(function (p) { return !board[p[0]][p[1]].busy; })) return cells;
+    }
+    return null;
+  }
+  function doCombo() {
+    var cells = pickLine();
+    if (!cells) return;
+    var k = Math.floor(Math.random() * 6);
+    cells.forEach(function (p) {
+      var o = board[p[0]][p[1]];
+      o.busy = true; o.c = k;
+      tween(o, "s", 1, 1.16, 0.1); tween(o, "fl", 0, 1, 0.1);
+    });
+    after(0.1, function () { burst(cells, k); });
+  }
+  function burst(cells, k) {
+    combo++;
+    tier = tierOf(combo);
+    var T = TIERS[tier];
+    pop = 1;
+    note(combo, tier);
+    if (!calm()) shake = Math.max(shake, T.shake);
+    if (tier >= 3) tintColor = RUNES[k].base;
+    var n = calm() ? Math.ceil(T.parts / 2) : T.parts, sx = 0, sy = 0;
+    cells.forEach(function (p) {
+      var o = board[p[0]][p[1]], q = center(p[0], p[1]);
+      sx += q.x; sy += q.y;
+      spawn(q.x, q.y, k, Math.ceil(n / cells.length));
+      tween(o, "a", 1, 0, 0.09); tween(o, "s", 1.16, 1.45, 0.09);
+    });
+    if (tier >= 2) rings.push({ x: sx / cells.length, y: sy / cells.length, k: k, t0: gameT, d: 0.45, max: cell * (1.4 + tier * 0.35) });
+    after(0.12, function () { refill(cells, k); });
+    if (combo === OD_AT) overdrive();
+  }
+  function refill(cells, k) {
+    cells.forEach(function (p) {
+      var o = board[p[0]][p[1]];
+      o.c = od && Math.random() < 0.5 ? k : Math.floor(Math.random() * 6);
+      o.a = 1; o.s = 1; o.fl = 0;
+      if (od) o.plus = 1;
+      tween(o, "dy", -cell * 1.1, 0, 0.22, fallEase);
+      after(0.22, function () { o.busy = false; });
+    });
+  }
+  function overdrive() {
+    od = true;
+    odDur = calm() ? 0.25 : 0.65;
+    freeze = odDur; odT0 = realT; shake = 0;
+    tone(110, { type: "sine", dur: 0.9, vol: 0.45, slide: 0.4, at: odDur * 0.45 });
+    [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) { tone(f, { type: "triangle", dur: 1.2, vol: 0.11, at: odDur + i * 0.035 }); });
+    after(0.001, function () {
+      flash = calm() ? 0.12 : 0.34;
+      for (var r = ROWS - 1; r >= 0; r--) {
+        (function (row, delay) {
+          after(delay, function () { board[row].forEach(function (o) { tween(o, "plus", o.plus, 1, 0.2); }); });
+        })(r, (ROWS - 1 - r) * 0.1);
+      }
+    });
+  }
+
+  // ===== 粒子 =====
+  function spawn(x, y, k, n) {
+    var sp = cell / 60, cap = calm() ? 200 : 400, alive = 0, i;
+    for (i = 0; i < pool.length; i++) if (pool[i].alive) alive++;
+    for (i = 0; i < pool.length && n > 0 && alive < cap; i++) {
+      var p = pool[i];
+      if (p.alive) continue;
+      var a = Math.random() * Math.PI * 2, v = (70 + Math.random() * 230) * sp;
+      p.alive = true; p.x = x; p.y = y; p.vx = Math.cos(a) * v; p.vy = Math.sin(a) * v - 60 * sp;
+      p.life = p.max = 0.35 + Math.random() * 0.45; p.size = (6 + Math.random() * 12) * sp; p.k = k;
+      n--; alive++;
+    }
+  }
+  function updParticles(dt) {
+    var g = 420 * cell / 60, damp = Math.pow(0.12, dt);
+    for (var i = 0; i < pool.length; i++) {
+      var p = pool[i];
+      if (!p.alive) continue;
+      p.life -= dt;
+      if (p.life <= 0) { p.alive = false; continue; }
+      p.vx *= damp; p.vy = p.vy * damp + g * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+  }
+
+  // ===== 音 =====
+  function initAudio() {
+    if (audio) { if (audio.state === "suspended") audio.resume(); return; }
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    audio = new AC();
+    var comp = audio.createDynamicsCompressor();
+    master = audio.createGain(); master.gain.value = 0.5;
+    master.connect(comp); comp.connect(audio.destination);
+  }
+  function tone(freq, o) {
+    if (!soundOn || !audio) return;
+    o = o || {};
+    var t = audio.currentTime + (o.at || 0), dur = o.dur || 0.22;
+    var osc = audio.createOscillator(), g = audio.createGain();
+    osc.type = o.type || "triangle";
+    osc.frequency.setValueAtTime(freq, t);
+    if (o.slide) osc.frequency.exponentialRampToValueAtTime(freq * o.slide, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(o.vol || 0.2, t + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(master);
+    osc.start(t); osc.stop(t + dur + 0.03);
+  }
+  function note(n, t) {
+    var i = n - 1, semi = PENTA[i % 5] + 12 * Math.floor(i / 5);
+    var f = 261.63 * Math.pow(2, semi / 12);
+    tone(f, { type: "triangle", dur: 0.26, vol: 0.2 + Math.min(0.1, t * 0.025) });
+    tone(f * 2, { type: "sine", dur: 0.12, vol: 0.06 });
+    if (t >= 2) tone(f * 3, { type: "sine", dur: 0.35, vol: 0.05, at: 0.03 });
+    if (t >= 3) tone(150, { type: "sine", dur: 0.22, vol: 0.35, slide: 0.35 });
+  }
+  function stampSound() {
+    tone(120, { type: "sine", dur: 0.32, vol: 0.45, slide: 0.4 });
+    tone(783.99, { type: "triangle", dur: 0.5, vol: 0.12 });
+    tone(1174.66, { type: "triangle", dur: 0.6, vol: 0.08, at: 0.04 });
+  }
+
+  // ===== 描画 =====
+  function fitSize(txt, maxW, base) {
+    ctx.font = base + "px " + FONT;
+    var w = ctx.measureText(txt).width;
+    return w > maxW ? base * maxW / w : base;
+  }
+  function bigText(txt, cx, cy, size, alpha, scale) {
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(cx, cy); ctx.scale(scale, scale);
+    ctx.font = size + "px " + FONT;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    var w = ctx.measureText(txt).width;
+    var g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+    RUNES.forEach(function (r, i) { g.addColorStop(i / (RUNES.length - 1), r.light); });
+    ctx.lineJoin = "round"; ctx.lineWidth = size * 0.16; ctx.strokeStyle = "rgba(12,8,30,0.92)";
+    ctx.strokeText(txt, 0, 0);
+    ctx.fillStyle = g; ctx.fillText(txt, 0, 0);
+    ctx.restore();
+  }
+  function drawHud() {
+    var T = TIERS[tier], y = hud * 0.55;
+    ctx.save();
+    ctx.translate(ox + 4, y);
+    var sc = 1 + pop * (calm() ? 0.08 : 0.35);
+    ctx.scale(sc, sc);
+    ctx.textAlign = "left"; ctx.textBaseline = "middle";
+    var numTxt = String(combo);
+    ctx.font = Math.round(hud * 0.6) + "px " + FONT;
+    ctx.lineJoin = "round"; ctx.lineWidth = hud * 0.1; ctx.strokeStyle = rgba(T.color, 0.35);
+    if (combo) ctx.strokeText(numTxt, 0, 0);
+    ctx.fillStyle = combo ? "#FFFFFF" : "rgba(255,255,255,0.35)";
+    ctx.fillText(numTxt, 0, 0);
+    var nw = ctx.measureText(numTxt).width;
+    ctx.font = Math.round(hud * 0.22) + "px " + FONT;
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillText("COMBO", nw + hud * 0.14, -hud * 0.12);
+    if (T.label && combo) { ctx.fillStyle = T.color; ctx.fillText(T.label, nw + hud * 0.14, hud * 0.15); }
+    ctx.restore();
+
+    var gw = W * 0.3, gh = Math.max(6, hud * 0.13), gx = W - ox - gw - 2, gy = y - gh / 2;
+    ctx.font = Math.round(hud * 0.2) + "px " + FONT;
+    ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    ctx.fillText("OD", gx - 8, gy + gh / 2);
+    ctx.fillStyle = "rgba(255,255,255,0.1)"; rr(ctx, gx, gy, gw, gh, gh / 2); ctx.fill();
+    var f = od ? 1 : Math.min(1, combo / OD_AT);
+    if (f > 0) {
+      var fill;
+      if (od) {
+        var h = (realT * 120) % 360;
+        fill = ctx.createLinearGradient(gx, 0, gx + gw, 0);
+        for (var i = 0; i <= 4; i++) fill.addColorStop(i / 4, "hsl(" + ((h + i * 72) % 360) + ",90%,64%)");
+      } else fill = T.color;
+      ctx.fillStyle = fill; rr(ctx, gx, gy, Math.max(gh, gw * f), gh, gh / 2); ctx.fill();
+    }
+  }
+  function draw() {
+    if (!W) return;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.globalCompositeOperation = "source-over"; ctx.globalAlpha = 1;
+    ctx.fillStyle = "#120F26"; ctx.fillRect(0, 0, W, H);
+    var g;
+    if (auroraA > 0.01) {
+      var hh = (realT * 40) % 360;
+      g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, "hsla(" + hh + ",85%,60%," + 0.22 * auroraA + ")");
+      g.addColorStop(0.5, "hsla(" + ((hh + 120) % 360) + ",85%,60%," + 0.15 * auroraA + ")");
+      g.addColorStop(1, "hsla(" + ((hh + 240) % 360) + ",85%,60%," + 0.22 * auroraA + ")");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+    if (tintA > 0.01) {
+      g = ctx.createRadialGradient(W / 2, oy + cell * 2.5, cell * 0.5, W / 2, oy + cell * 2.5, W * 0.8);
+      g.addColorStop(0, rgba(tintColor, 0.32 * tintA)); g.addColorStop(1, rgba(tintColor, 0));
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+    drawHud();
+
+    var bx = ox, by = oy, bw = cell * COLS, bh = cell * ROWS, r, c;
+    ctx.fillStyle = "rgba(255,255,255,0.045)"; rr(ctx, bx - 4, by - 4, bw + 8, bh + 8, 14); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.03)";
+    for (r = 0; r < ROWS; r++) for (c = 0; c < COLS; c++) if ((r + c) % 2) ctx.fillRect(bx + c * cell, by + r * cell, cell, cell);
+
+    ctx.save();
+    rr(ctx, bx, by, bw, bh, 10); ctx.clip();
+    for (r = 0; r < ROWS; r++) {
+      for (c = 0; c < COLS; c++) {
+        var o = board[r][c];
+        if (o.a <= 0.01) continue;
+        var x = bx + c * cell + cell / 2, y = by + r * cell + cell / 2 + o.dy, sz = cell * o.s;
+        ctx.globalAlpha = o.a;
+        ctx.drawImage(sprites[o.c], x - sz / 2, y - sz / 2, sz, sz);
+        if (o.fl > 0.01) {
+          ctx.globalCompositeOperation = "lighter"; ctx.globalAlpha = o.a * o.fl * 0.85;
+          ctx.drawImage(sprites[o.c], x - sz / 2, y - sz / 2, sz, sz);
+          ctx.globalCompositeOperation = "source-over";
+        }
+        if (o.plus > 0.01) {
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = o.a * o.plus * (0.75 + 0.25 * Math.sin(realT * 6 + r + c));
+          ctx.strokeStyle = "#FFE3A0"; ctx.lineWidth = Math.max(1.5, cell * 0.045);
+          rr(ctx, x - sz * 0.43, y - sz * 0.43, sz * 0.86, sz * 0.86, sz * 0.26); ctx.stroke();
+          ctx.globalCompositeOperation = "source-over";
+        }
+        ctx.globalAlpha = 1;
+      }
+    }
+    ctx.restore();
+
+    ctx.globalCompositeOperation = "lighter";
+    for (var j = 0; j < rings.length; j++) {
+      var rg = rings[j], q = clamp((gameT - rg.t0) / rg.d, 0, 1);
+      ctx.globalAlpha = 1 - q;
+      ctx.strokeStyle = RUNES[rg.k].light; ctx.lineWidth = cell * 0.08 * (1 - q) + 1;
+      ctx.beginPath(); ctx.arc(rg.x, rg.y, rg.max * easeOut(q), 0, Math.PI * 2); ctx.stroke();
+    }
+    for (var m = 0; m < pool.length; m++) {
+      var p = pool[m];
+      if (!p.alive) continue;
+      var lf = p.life / p.max, ps = p.size * (0.4 + 0.6 * lf);
+      ctx.globalAlpha = lf;
+      ctx.drawImage(glows[p.k], p.x - ps, p.y - ps, ps * 2, ps * 2);
+    }
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over";
+    ctx.restore();
+
+    drawOverlays();
+  }
+  function drawOverlays() {
+    var cx = W / 2, cy = oy + cell * 2.5;
+    if (odT0 >= 0) {
+      var p = clamp((realT - odT0) / odDur, 0, 1), post = realT - (odT0 + odDur);
+      var dark = post < 0 ? Math.min(1, p * 4) * 0.62 : Math.max(0, 0.62 * (1 - post / 0.25));
+      if (dark > 0.005) { ctx.fillStyle = "rgba(8,6,22," + dark + ")"; ctx.fillRect(0, 0, W, H); }
+      if (!calm() && p > 0.12 && post < 0.25) {
+        var q = easeOut(clamp((p - 0.12) / 0.4, 0, 1)), ra = post < 0 ? 0.75 : 0.75 * (1 - post / 0.25);
+        ctx.save(); ctx.globalCompositeOperation = "lighter";
+        ctx.strokeStyle = "rgba(255,236,214," + ra + ")"; ctx.lineWidth = 1.5;
+        for (var i = 0; i < 14; i++) {
+          var a = i / 14 * Math.PI * 2 + 0.25, len = q * W * 0.8;
+          ctx.beginPath();
+          ctx.moveTo(cx + Math.cos(a) * len * 0.12, cy + Math.sin(a) * len * 0.12);
+          ctx.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+      var tp = clamp((p - 0.45) / 0.55, 0, 1);
+      var ta = post < 0 ? tp : (post < 0.6 ? 1 : Math.max(0, 1 - (post - 0.6) / 0.5));
+      if (ta > 0.005) {
+        var sc = calm() ? 1 : (post < 0 ? 2.4 - 1.4 * easeOut(tp) : 1 + Math.min(post, 1.1) * 0.05);
+        bigText("OVERDRIVE", cx, cy, fitSize("OVERDRIVE", W * 0.86, cell * 1.05), ta, sc);
+      }
+      if (post > 1.2) odT0 = -1;
+    }
+    if (flash > 0.004) {
+      var g = ctx.createLinearGradient(0, 0, W, H);
+      g.addColorStop(0, "rgba(255,214,236," + flash + ")");
+      g.addColorStop(0.5, "rgba(214,240,255," + flash + ")");
+      g.addColorStop(1, "rgba(255,246,206," + flash + ")");
+      ctx.save(); ctx.globalCompositeOperation = "lighter"; ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); ctx.restore();
+    }
+    if (stamp) {
+      var s = gameT - stamp.t0, al = s < 1.3 ? 1 : Math.max(0, 1 - (s - 1.3) / 0.5);
+      if (al <= 0) stamp = null;
+      else {
+        var ss = calm() ? 1 : (s < 0.18 ? 1.8 - 0.8 * easeOut(s / 0.18) : 1);
+        ctx.fillStyle = "rgba(10,8,26," + 0.55 * al + ")";
+        ctx.fillRect(0, cy - cell * 0.85, W, cell * 1.7);
+        var txt = stamp.n + " COMBO";
+        bigText(txt, cx, cy, fitSize(txt, W * 0.84, cell * 0.95), al, ss);
+      }
+    }
+  }
+
+  // ===== ループ =====
+  function frame(now) {
+    var dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+    last = now; realT += dt;
+    if (freeze > 0) {
+      freeze -= dt;
+    } else {
+      gameT += dt;
+      if (timers.length) {
+        var due = timers.filter(function (t) { return t.at <= gameT; });
+        timers = timers.filter(function (t) { return t.at > gameT; });
+        due.sort(function (a, b) { return a.at - b.at; }).forEach(function (t) { t.fn(); });
+      }
+      for (var i = tweens.length - 1; i >= 0; i--) {
+        var w = tweens[i], q = clamp((gameT - w.t0) / w.d, 0, 1);
+        w.o[w.k] = w.a + (w.b - w.a) * w.e(q);
+        if (q >= 1) tweens.splice(i, 1);
+      }
+      updParticles(dt);
+      for (var j = rings.length - 1; j >= 0; j--) if (gameT - rings[j].t0 > rings[j].d) rings.splice(j, 1);
+      pop *= Math.exp(-dt * 12);
+    }
+    shake *= Math.exp(-dt * 10);
+    if (shake < 0.15 || freeze > 0) shake = freeze > 0 ? 0 : (shake < 0.15 ? 0 : shake);
+    shakeX = (Math.random() * 2 - 1) * shake; shakeY = (Math.random() * 2 - 1) * shake;
+    flash *= Math.exp(-dt * 6);
+    tintA += ((playing && tier >= 3 ? 1 : 0) - tintA) * Math.min(1, dt * 5);
+    auroraA += ((playing && od ? 1 : 0) - auroraA) * Math.min(1, dt * 3);
+    draw();
+    if (playing || realT < activeUntil) raf = requestAnimationFrame(frame);
+    else raf = 0;
+  }
+  function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+
+  function reset() {
+    timers = []; tweens = []; rings = [];
+    pool.forEach(function (p) { p.alive = false; });
+    combo = 0; tier = 0; od = false; odT0 = -1; stamp = null; flash = 0; shake = 0; pop = 0; freeze = 0;
+    board.forEach(function (row) { row.forEach(function (o) { o.plus = 0; o.busy = false; o.s = 1; o.a = 1; o.dy = 0; o.fl = 0; }); });
+  }
+  function finish() {
+    playing = false; od = false; activeUntil = realT + 1.6;
+    board.forEach(function (row) { row.forEach(function (o) { tween(o, "plus", o.plus, 0, 0.4); }); });
+    playBtn.disabled = false; playBtn.textContent = "もう一度再生";
+  }
+  function play() {
+    if (playing) return;
+    if (soundOn) initAudio();
+    reset();
+    playing = true;
+    playBtn.disabled = true; playBtn.textContent = "再生中…";
+    var t = 0.3, gap = 0.25;
+    for (var i = 0; i < TOTAL; i++) { after(t, doCombo); t += gap; gap = Math.max(0.12, gap * 0.9); }
+    after(t + 0.3, function () { stamp = { t0: gameT, n: combo }; stampSound(); if (!calm()) shake = Math.max(shake, 6); });
+    after(t + 2.2, finish);
+    kick();
+  }
+
+  playBtn.addEventListener("click", play);
+  soundBtn.addEventListener("click", function () {
+    soundOn = !soundOn;
+    if (soundOn) initAudio();
+    soundBtn.setAttribute("aria-pressed", String(soundOn));
+    soundBtn.textContent = soundOn ? "効果音：オン" : "効果音：オフ";
+  });
+
+  genBoard();
+  resize();
+  if (window.ResizeObserver) new ResizeObserver(function () { resize(); }).observe(wrap);
+  else window.addEventListener("resize", resize);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (!raf) draw(); });
+})();
+</script>
+</body>
+</html>

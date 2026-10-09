@@ -1,0 +1,1006 @@
+[
+  {
+    "id": "d4",
+    "name": "翠蔦の回廊",
+    "hue": 142,
+    "desc": "鎖を避け、ロックを同じ色と消そう",
+    "floors": [
+      [
+        {
+          "kind": "sentinel",
+          "attr": 2,
+          "name": "翠センチネル",
+          "hp": 44000,
+          "def": 350,
+          "atk": 1300,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "lock",
+              "when": "preempt"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 0,
+          "name": "紅ウィスプ",
+          "hp": 40000,
+          "def": 350,
+          "atk": 1250,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 2,
+          "name": "翠ゴーレム",
+          "hp": 85000,
+          "def": 650,
+          "atk": 1850,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "lock",
+              "when": "every:3"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 1,
+          "name": "蒼ウィスプ",
+          "hp": 45000,
+          "def": 350,
+          "atk": 1350,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "sentinel",
+          "attr": 0,
+          "name": "紅センチネル",
+          "hp": 50000,
+          "def": 350,
+          "atk": 1400,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        },
+        {
+          "kind": "sentinel",
+          "attr": 2,
+          "name": "翠センチネル",
+          "hp": 55000,
+          "def": 350,
+          "atk": 1450,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "lock",
+              "when": "turn:2"
+            }
+          ]
+        },
+        {
+          "kind": "sentinel",
+          "attr": 3,
+          "name": "輝センチネル",
+          "hp": 50000,
+          "def": 350,
+          "atk": 1400,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 2,
+          "name": "翠ゴーレム",
+          "hp": 100000,
+          "def": 650,
+          "atk": 2000,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "lock",
+              "when": "preempt"
+            },
+            {
+              "id": "lock",
+              "when": "every:4"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 4,
+          "name": "冥ウィスプ",
+          "hp": 55000,
+          "def": 350,
+          "atk": 1450,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "boss",
+          "attr": 2,
+          "name": "蔦冠のメルティア",
+          "hp": 450000,
+          "def": 650,
+          "atk": 2050,
+          "turn": 1,
+          "boss": true,
+          "skills": [
+            {
+              "id": "lock",
+              "when": "preempt"
+            },
+            {
+              "id": "lock",
+              "when": "every:3"
+            }
+          ],
+          "autoEnrage": false,
+          "bigName": "蔦冠の縛撃",
+          "variant": 0,
+          "bigEvery": 3,
+          "bigMult": 1.8
+        }
+      ]
+    ]
+  },
+  {
+    "id": "d5",
+    "name": "紅蓮の溶鉱炉",
+    "hue": 16,
+    "desc": "毒の消しすぎに注意。再生する敵を集中攻撃",
+    "floors": [
+      [
+        {
+          "kind": "wisp",
+          "attr": 0,
+          "name": "紅ウィスプ",
+          "hp": 55000,
+          "def": 350,
+          "atk": 1450,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "poison",
+              "when": "preempt"
+            }
+          ]
+        },
+        {
+          "kind": "sentinel",
+          "attr": 2,
+          "name": "翠センチネル",
+          "hp": 55000,
+          "def": 350,
+          "atk": 1450,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 0,
+          "name": "紅ゴーレム",
+          "hp": 105000,
+          "def": 650,
+          "atk": 2150,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "regen",
+              "when": "preempt"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 1,
+          "name": "蒼ウィスプ",
+          "hp": 60000,
+          "def": 350,
+          "atk": 1550,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "wisp",
+          "attr": 0,
+          "name": "紅ウィスプ",
+          "hp": 65000,
+          "def": 350,
+          "atk": 1550,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "poison",
+              "when": "turn:1"
+            }
+          ]
+        },
+        {
+          "kind": "sentinel",
+          "attr": 3,
+          "name": "輝センチネル",
+          "hp": 60000,
+          "def": 350,
+          "atk": 1500,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        },
+        {
+          "kind": "sentinel",
+          "attr": 4,
+          "name": "冥センチネル",
+          "hp": 60000,
+          "def": 350,
+          "atk": 1500,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 0,
+          "name": "紅ゴーレム",
+          "hp": 125000,
+          "def": 650,
+          "atk": 2300,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "regen",
+              "when": "preempt"
+            },
+            {
+              "id": "poison",
+              "when": "every:4"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 2,
+          "name": "翠ウィスプ",
+          "hp": 65000,
+          "def": 350,
+          "atk": 1600,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "boss",
+          "attr": 0,
+          "name": "熔鉄の巨神ヴォルカ",
+          "hp": 600000,
+          "def": 650,
+          "atk": 2400,
+          "turn": 1,
+          "boss": true,
+          "skills": [
+            {
+              "id": "regen",
+              "when": "preempt"
+            },
+            {
+              "id": "poison",
+              "when": "every:4"
+            }
+          ],
+          "autoEnrage": false,
+          "bigName": "メルト・ハンマー",
+          "variant": 1,
+          "bigEvery": 3,
+          "bigMult": 1.8
+        }
+      ]
+    ]
+  },
+  {
+    "id": "d6",
+    "name": "輝きの天文台",
+    "hue": 46,
+    "desc": "暗闇でも並びは同じ。7コンボの盾を突破",
+    "floors": [
+      [
+        {
+          "kind": "wisp",
+          "attr": 3,
+          "name": "輝ウィスプ",
+          "hp": 70000,
+          "def": 350,
+          "atk": 1700,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "dark",
+              "when": "preempt"
+            }
+          ]
+        },
+        {
+          "kind": "sentinel",
+          "attr": 1,
+          "name": "蒼センチネル",
+          "hp": 65000,
+          "def": 350,
+          "atk": 1600,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 3,
+          "name": "輝ゴーレム",
+          "hp": 130000,
+          "def": 650,
+          "atk": 2400,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "comboAbsorb",
+              "when": "preempt",
+              "min": 6
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 4,
+          "name": "冥ウィスプ",
+          "hp": 70000,
+          "def": 350,
+          "atk": 1700,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "sentinel",
+          "attr": 0,
+          "name": "紅センチネル",
+          "hp": 70000,
+          "def": 350,
+          "atk": 1650,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        },
+        {
+          "kind": "wisp",
+          "attr": 3,
+          "name": "輝ウィスプ",
+          "hp": 75000,
+          "def": 350,
+          "atk": 1750,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "dark",
+              "when": "turn:1"
+            }
+          ]
+        },
+        {
+          "kind": "sentinel",
+          "attr": 2,
+          "name": "翠センチネル",
+          "hp": 70000,
+          "def": 350,
+          "atk": 1650,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 3,
+          "name": "輝ゴーレム",
+          "hp": 155000,
+          "def": 650,
+          "atk": 2550,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "dark",
+              "when": "preempt"
+            },
+            {
+              "id": "comboAbsorb",
+              "when": "turn:2",
+              "min": 7
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 4,
+          "name": "冥ウィスプ",
+          "hp": 75000,
+          "def": 350,
+          "atk": 1750,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "boss",
+          "attr": 3,
+          "name": "星詠みの機神アストラ",
+          "hp": 720000,
+          "def": 650,
+          "atk": 2750,
+          "turn": 1,
+          "boss": true,
+          "skills": [
+            {
+              "id": "comboAbsorb",
+              "when": "preempt",
+              "min": 7
+            },
+            {
+              "id": "dark",
+              "when": "every:3"
+            },
+            {
+              "id": "comboAbsorb",
+              "when": "every:5",
+              "min": 7
+            }
+          ],
+          "autoEnrage": false,
+          "bigName": "アストラル・バースト",
+          "variant": 2,
+          "bigEvery": 3,
+          "bigMult": 1.8
+        }
+      ]
+    ]
+  },
+  {
+    "id": "d7",
+    "name": "万華の深層",
+    "hue": 228,
+    "desc": "吸収する色を避けよう。属性変化と攻撃上限",
+    "floors": [
+      [
+        {
+          "kind": "sentinel",
+          "attr": 0,
+          "name": "紅センチネル",
+          "hp": 80000,
+          "def": 350,
+          "atk": 1800,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "absorb",
+              "when": "preempt",
+              "attr": 0
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 1,
+          "name": "蒼ウィスプ",
+          "hp": 80000,
+          "def": 350,
+          "atk": 1800,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 2,
+          "name": "翠ゴーレム",
+          "hp": 160000,
+          "def": 650,
+          "atk": 2700,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "damageCap",
+              "when": "preempt",
+              "limit": 30000
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 4,
+          "name": "冥ウィスプ",
+          "hp": 85000,
+          "def": 350,
+          "atk": 1900,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "sentinel",
+          "attr": 3,
+          "name": "輝センチネル",
+          "hp": 90000,
+          "def": 350,
+          "atk": 1950,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "attrChange",
+              "when": "every:3",
+              "attrs": [
+                3,
+                4
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "sentinel",
+          "attr": 4,
+          "name": "冥センチネル",
+          "hp": 90000,
+          "def": 350,
+          "atk": 1950,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 1,
+          "name": "蒼ゴーレム",
+          "hp": 180000,
+          "def": 650,
+          "atk": 2800,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "absorb",
+              "when": "preempt",
+              "attr": 1
+            },
+            {
+              "id": "attrChange",
+              "when": "every:3"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 0,
+          "name": "紅ウィスプ",
+          "hp": 90000,
+          "def": 350,
+          "atk": 1950,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "sentinel",
+          "attr": 2,
+          "name": "翠センチネル",
+          "hp": 100000,
+          "def": 350,
+          "atk": 2000,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "damageCap",
+              "when": "preempt",
+              "limit": 35000
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 3,
+          "name": "輝ウィスプ",
+          "hp": 95000,
+          "def": 350,
+          "atk": 1950,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        },
+        {
+          "kind": "wisp",
+          "attr": 4,
+          "name": "冥ウィスプ",
+          "hp": 95000,
+          "def": 350,
+          "atk": 1950,
+          "turn": 2,
+          "boss": false,
+          "skills": []
+        }
+      ],
+      [
+        {
+          "kind": "boss",
+          "attr": 3,
+          "name": "万華鏡の魔晶カレイド",
+          "hp": 920000,
+          "def": 650,
+          "atk": 3100,
+          "turn": 1,
+          "boss": true,
+          "skills": [
+            {
+              "id": "damageCap",
+              "when": "preempt",
+              "limit": 45000
+            },
+            {
+              "id": "absorb",
+              "when": "turn:1",
+              "attr": 3
+            },
+            {
+              "id": "attrChange",
+              "when": "every:3"
+            },
+            {
+              "id": "absorb",
+              "when": "every:5",
+              "attr": 4
+            }
+          ],
+          "autoEnrage": false,
+          "bigName": "スペクトル・レイ",
+          "variant": 0,
+          "bigEvery": 3,
+          "bigMult": 1.8
+        }
+      ]
+    ]
+  },
+  {
+    "id": "d8",
+    "name": "終焉の玉座",
+    "hue": 280,
+    "desc": "すべての仕掛けを乗り越え、三形態の王へ",
+    "floors": [
+      [
+        {
+          "kind": "sentinel",
+          "attr": 2,
+          "name": "翠センチネル",
+          "hp": 105000,
+          "def": 350,
+          "atk": 2100,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "lock",
+              "when": "preempt"
+            },
+            {
+              "id": "dark",
+              "when": "every:4"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 0,
+          "name": "紅ウィスプ",
+          "hp": 100000,
+          "def": 350,
+          "atk": 2000,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "poison",
+              "when": "turn:2"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 0,
+          "name": "紅ゴーレム",
+          "hp": 210000,
+          "def": 650,
+          "atk": 3100,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "regen",
+              "when": "preempt"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 4,
+          "name": "冥ウィスプ",
+          "hp": 110000,
+          "def": 350,
+          "atk": 2150,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "dark",
+              "when": "preempt"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "kind": "sentinel",
+          "attr": 3,
+          "name": "輝センチネル",
+          "hp": 120000,
+          "def": 350,
+          "atk": 2200,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "comboAbsorb",
+              "when": "preempt",
+              "min": 7
+            }
+          ]
+        },
+        {
+          "kind": "sentinel",
+          "attr": 1,
+          "name": "蒼センチネル",
+          "hp": 120000,
+          "def": 350,
+          "atk": 2200,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "absorb",
+              "when": "preempt",
+              "attr": 1
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "kind": "golem",
+          "attr": 4,
+          "name": "冥ゴーレム",
+          "hp": 240000,
+          "def": 650,
+          "atk": 3300,
+          "turn": 3,
+          "boss": false,
+          "skills": [
+            {
+              "id": "endure",
+              "when": "preempt"
+            },
+            {
+              "id": "attrChange",
+              "when": "every:3"
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 0,
+          "name": "紅ウィスプ",
+          "hp": 120000,
+          "def": 350,
+          "atk": 2200,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "poison",
+              "when": "preempt"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "kind": "sentinel",
+          "attr": 2,
+          "name": "翠センチネル",
+          "hp": 130000,
+          "def": 350,
+          "atk": 2300,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "damageCap",
+              "when": "preempt",
+              "limit": 40000
+            }
+          ]
+        },
+        {
+          "kind": "wisp",
+          "attr": 3,
+          "name": "輝ウィスプ",
+          "hp": 125000,
+          "def": 350,
+          "atk": 2250,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "dark",
+              "when": "preempt"
+            }
+          ]
+        },
+        {
+          "kind": "sentinel",
+          "attr": 4,
+          "name": "冥センチネル",
+          "hp": 130000,
+          "def": 350,
+          "atk": 2300,
+          "turn": 2,
+          "boss": false,
+          "skills": [
+            {
+              "id": "lock",
+              "when": "turn:2"
+            }
+          ]
+        }
+      ],
+      [
+        {
+          "kind": "boss",
+          "attr": 4,
+          "name": "終焉の王オブシディアン",
+          "hp": 1200000,
+          "def": 650,
+          "atk": 3500,
+          "turn": 1,
+          "boss": true,
+          "skills": [
+            {
+              "id": "endure",
+              "when": "preempt"
+            },
+            {
+              "id": "transform",
+              "when": "hp:50",
+              "to": {
+                "form": 2,
+                "phaseName": "オブシディアン・第二形態",
+                "attr": 0,
+                "atk": 3900,
+                "turn": 1,
+                "bigEvery": 3,
+                "bigMult": 1.8,
+                "bigName": "崩壊の烈火"
+              }
+            },
+            {
+              "id": "transform",
+              "when": "hp:25",
+              "phase": 2,
+              "to": {
+                "form": 3,
+                "phaseName": "オブシディアン・最終形態",
+                "attr": 4,
+                "atk": 4200,
+                "turn": 1,
+                "bigEvery": 2,
+                "bigMult": 1.8,
+                "bigName": "終焉の深淵"
+              }
+            },
+            {
+              "id": "lock",
+              "when": "every:3",
+              "phase": 1
+            },
+            {
+              "id": "dark",
+              "when": "every:3",
+              "phase": 2
+            },
+            {
+              "id": "poison",
+              "when": "every:4",
+              "phase": 2
+            },
+            {
+              "id": "comboAbsorb",
+              "when": "every:4",
+              "phase": 3,
+              "min": 8
+            },
+            {
+              "id": "absorb",
+              "when": "every:5",
+              "phase": 3,
+              "attr": 4
+            }
+          ],
+          "autoEnrage": false,
+          "bigName": "終焉の審判",
+          "variant": 1,
+          "bigEvery": 3,
+          "bigMult": 1.8
+        }
+      ]
+    ]
+  }
+]
