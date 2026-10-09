@@ -423,7 +423,7 @@ const DUNGEONS = [
     [mob("golem", 0, 24000, 400, 1300, 2), mob("wisp", 4, 18000, 300, 1150, 1)],
     [mob("sentinel", 1, 20000, 200, 1100, 2), mob("sentinel", 3, 20000, 200, 1100, 2), mob("sentinel", 4, 20000, 200, 1100, 2)],
     [mob("golem", 2, 30000, 500, 1450, 2), mob("golem", 0, 30000, 500, 1450, 2)],
-    [boss(4, "宵闇の王ノワール", 6300000, 500, 1700, 1, "エターナル・ナイト", 2)],
+    [boss(4, "宵闇の王ノワール", 140000, 500, 1700, 1, "エターナル・ナイト", 2)],
   ] },
 ];
 
@@ -464,7 +464,7 @@ DUNGEONS.push(
     [{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"comboAbsorb","when":"preempt","min":7}]},{"kind":"sentinel","attr":1,"name":"蒼センチネル","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":1}]}],
     [{"kind":"golem","attr":4,"name":"冥ゴーレム","hp":43200,"def":650,"atk":2376,"turn":3,"boss":false,"skills":[{"id":"endure","when":"preempt"},{"id":"attrChange","when":"every:3"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"poison","when":"preempt"}]}],
     [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":23400,"def":350,"atk":1656,"turn":2,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":40000}]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":22500,"def":350,"atk":1620,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":23400,"def":350,"atk":1656,"turn":2,"boss":false,"skills":[{"id":"lock","when":"turn:2"}]}],
-    [{"kind":"boss","attr":4,"name":"終焉の王オブシディアン","hp":12960000,"def":650,"atk":2520,"turn":1,"boss":true,"skills":[{"id":"endure","when":"preempt"},{"id":"transform","when":"hp:50","to":{"form":2,"phaseName":"オブシディアン・第二形態","attr":0,"atk":2808,"turn":1,"bigEvery":3,"bigMult":1.8,"bigName":"崩壊の烈火"}},{"id":"transform","when":"hp:25","phase":2,"to":{"form":3,"phaseName":"オブシディアン・最終形態","attr":4,"atk":3024,"turn":1,"bigEvery":2,"bigMult":1.8,"bigName":"終焉の深淵"}},{"id":"lock","when":"every:3","phase":1},{"id":"dark","when":"every:3","phase":2},{"id":"poison","when":"every:4","phase":2},{"id":"comboAbsorb","when":"every:4","phase":3,"min":8},{"id":"absorb","when":"every:5","phase":3,"attr":4}],"autoEnrage":false,"bigName":"終焉の審判","variant":1,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"boss","attr":4,"name":"終焉の王オブシディアン","hp":216000,"def":650,"atk":2520,"turn":1,"boss":true,"skills":[{"id":"endure","when":"preempt"},{"id":"transform","when":"hp:50","to":{"form":2,"phaseName":"オブシディアン・第二形態","attr":0,"atk":2808,"turn":1,"bigEvery":3,"bigMult":1.8,"bigName":"崩壊の烈火"}},{"id":"transform","when":"hp:25","phase":2,"to":{"form":3,"phaseName":"オブシディアン・最終形態","attr":4,"atk":3024,"turn":1,"bigEvery":2,"bigMult":1.8,"bigName":"終焉の深淵"}},{"id":"lock","when":"every:3","phase":1},{"id":"dark","when":"every:3","phase":2},{"id":"poison","when":"every:4","phase":2},{"id":"comboAbsorb","when":"every:4","phase":3,"min":8},{"id":"absorb","when":"every:5","phase":3,"attr":4}],"autoEnrage":false,"bigName":"終焉の審判","variant":1,"bigEvery":3,"bigMult":1.8}]
   ]}
 );
 DUNGEONS.forEach((d,i)=>{d.recommendedLv=CONFIG.DUNGEON_LEVELS[i];d.starGoals=CONFIG.STAR_GOALS[i];});

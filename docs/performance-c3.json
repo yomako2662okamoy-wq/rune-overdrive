@@ -9,16 +9,16 @@
         "seed": 22,
         "combos": 20
       },
-      "seconds": 4.961700000000186,
-      "frames": 581,
+      "seconds": 4.949200000000186,
+      "frames": 550,
       "mainCanvasGradients": 0,
-      "cpuP95ms": 2.7999999998137355,
-      "cpuMaxMs": 6.099999999627471,
-      "over16ms": 0
+      "cpuP95ms": 3.2000000001862645,
+      "cpuMaxMs": 22.40000000037253,
+      "over16ms": 1
     },
     {
       "quality": "low -> medium -> high",
-      "idleFramesIn1100ms": 32,
+      "idleFramesIn1100ms": 33,
       "particleCap": 140
     }
   ]
