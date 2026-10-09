@@ -37,6 +37,11 @@ RUNE OVERDRIVE（スマホ縦持ちのパズルRPG。ブラウザで動く）の
 - テストは必ず `node tools/test.mjs`／`node tools/smoke.mjs`／`node tools/sim.mjs` の形で実行する（別の書き方にしない）。
 - `node tools/smoke.mjs` は、各節の最後に1回だけ実行する。
 
+- テストやシミュレーターの実行中に、ログを何度も読みにいかない。終わるまで待ってから、結果を1回だけ読む。
+- 途中の確認は node tools/test.mjs だけにする。node tools/smoke.mjs は、作業の最後に1回だけ回す。
+- シミュレーターでの調整は --runs 50 で3回までにする。最後の確認だけ --runs 200 で測る。
+- 報告は短くまとめる。細かい結果は docs/worklog.md に書く。
+
 - 確認用デバッグは URL末尾に `?debug=1` を付け、設定→デバッグで全ダンジョン解放・仲間Lv1〜50を変更する（変更後は保存せず、再読み込みで通常セーブに戻る）。
 
 ## 報告の書き方
