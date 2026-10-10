@@ -843,3 +843,22 @@ test('編成の成長一覧は習得済みと次の連鎖技だけを出し、�
  const max=vm.runInContext('growthHtml(CHARS[0],50,true)',context);assert(max.includes('奥義の威力 ×1.5'));assert(!max.includes('未習得'));
  for(let i=0;i<chars.length;i++)assert(vm.runInContext('growthHtml(CHARS['+i+'],35,true)',context).includes('10連鎖で発動'));
 });
+
+
+test('ゲーム全体のJavaScriptに構文エラーがない',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ new vm.Script(html.match(/<script>([\s\S]*?)<\/script>/)[1]);
+});
+
+test('指の時間輪は実時間の残量を使い、画面内に収まり、ドラッグ終了で消える',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function dragTimerGeometry()'),html.indexOf('function drawDragTimer()'));
+ const context=vm.createContext({CONFIG:{DRAG_TIMER_RADIUS:13,DRAG_TIMER_OFFSET:34},clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),drag:{x:360,y:820},phase:'input',view:{timing:true,moveLeft:2},state:{moveTime:5},L:{W:375,H:844}});
+ vm.runInContext(source,context);
+ const timer=plain(vm.runInContext('dragTimerGeometry()',context));
+ assert.equal(timer.ratio,.4);assert.equal(timer.remaining,2);assert(timer.x+timer.r<375);assert(timer.y+timer.r<844);
+ vm.runInContext('view.moveLeft=1;drag.x=-50;drag.y=-50',context);
+ const edge=plain(vm.runInContext('dragTimerGeometry()',context));assert.equal(edge.ratio,.2);assert(edge.x-edge.r>=0);assert(edge.y-edge.r>=0);
+ vm.runInContext('view.timing=false',context);assert.equal(vm.runInContext('dragTimerGeometry().remaining',context),5);
+ vm.runInContext('drag=null',context);assert.equal(vm.runInContext('dragTimerGeometry()',context),null);
+});

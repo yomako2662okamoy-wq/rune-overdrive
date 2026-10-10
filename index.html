@@ -374,7 +374,7 @@ const CONFIG = {
   PARTICLES: [8, 16, 24, 32, 48],
   MAX_PARTICLES: 400,
   DRAG_LIFT: { small: 0.3, medium: 0.6, large: 0.9 }, DIAG_INNER: 0.2, LONG_PRESS: 0.4,
-  DRAG_TRAIL: 8, SWAP_VIB_MS: 5, DMG_STACK: 0.35, DMG_TOTAL_HOLD: 0.8,
+  DRAG_TIMER_RADIUS: 13, DRAG_TIMER_OFFSET: 34, DRAG_TRAIL: 8, SWAP_VIB_MS: 5, DMG_STACK: 0.35, DMG_TOTAL_HOLD: 0.8,
   DPR_MAX: 3,
   QUALITY_DPR: [1.5,2,3], QUALITY_PARTICLES: [.35,.6,1], QUALITY_DOWN_FPS: 45, QUALITY_UP_FPS: 57,
   QUALITY_WINDOW: 2, QUALITY_UP_HOLD: 10, IDLE_FPS: 30, GRADIENT_WIDTH: 512,
@@ -3720,7 +3720,23 @@ function drawBoard() {
     ctx.drawImage(o.dark > 0 ? darkSpr : runeSpr[o.c], x - s / 2, y - s / 2, s, s);
     if (o.pl > 0.01 && !o.dark) drawPlusRing(x, y, s, o.pl, 0);
   }
+  drawDragTimer();
   ctx.restore();
+}
+// 道の線は既存描画を使う。残り時間は単色の輪2本だけで表示する。
+function dragTimerGeometry() {
+  if (!drag || phase !== "input") return null;
+  const r = CONFIG.DRAG_TIMER_RADIUS, pad = r + 4;
+  const remaining = view.timing ? view.moveLeft : state.moveTime;
+  return {x:clamp(drag.x + CONFIG.DRAG_TIMER_OFFSET,pad,L.W-pad),y:clamp(drag.y-CONFIG.DRAG_TIMER_OFFSET,pad,L.H-pad),r,remaining,ratio:clamp(remaining/state.moveTime,0,1)};
+}
+function drawDragTimer() {
+  const ring = dragTimerGeometry(); if (!ring) return;
+  ctx.save();ctx.globalAlpha=1;ctx.globalCompositeOperation="source-over";
+  ctx.fillStyle="rgba(8,6,18,.8)";ctx.beginPath();ctx.arc(ring.x,ring.y,ring.r+3,0,Math.PI*2);ctx.fill();
+  ctx.lineWidth=3;ctx.strokeStyle="#625A78";ctx.beginPath();ctx.arc(ring.x,ring.y,ring.r,0,Math.PI*2);ctx.stroke();
+  ctx.strokeStyle=ring.remaining<1?"#FFC4B8":"#BCEFFF";ctx.beginPath();ctx.arc(ring.x,ring.y,ring.r,-Math.PI/2,-Math.PI/2+Math.PI*2*ring.ratio);ctx.stroke();
+  label(Math.ceil(ring.remaining),ring.x,ring.y,11,"#FFFFFF");ctx.restore();
 }
 function drawLock(x,y,size) {
   ctx.save(); ctx.strokeStyle="#D3D0E4";ctx.lineWidth=Math.max(2,size*.045);
@@ -5356,7 +5372,7 @@ if (DEBUG_MODE) window.RUNE_DEBUG = {
   qualityBoundary(){applyQualityBoundary();},
   particleProbe(n){spawnParticles(L.W/2,L.H/2,0,n);},
 
-  get input() { return { drag: drag ? cloneData(drag) : null }; },
+  get input() { return { drag: drag ? cloneData(drag) : null, timer:dragTimerGeometry() }; },
   get debugSession() { return debugSession; },
   get odOverlay() { return ov.od ? { ...ov.od } : null; },
   get pending() { return fx.pending + projectiles.length; },
