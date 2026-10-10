@@ -900,3 +900,15 @@ test('Space・P／Esc・Sは戦闘だけに作用し、入力中・修飾キー�
  for(const flag of ['repeat','ctrlKey','metaKey','altKey']){context.event[flag]=true;vm.runInContext('handleControlKey(event)',context);context.event[flag]=false;}
  context.scene='home';vm.runInContext('handleControlKey(event)',context);assert.deepEqual(calls,before);
 });
+
+
+test('盤面外への移動は中央判定を通らなくても隣の端マスで続く',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function stepDrag()'),html.indexOf('function swapCells('));
+ const swaps=[];const context=vm.createContext({CONFIG:{DIAG_INNER:.2,DRAG_TRAIL:8},L:{bx:10,by:100,bw:350,bh:300,cell:50},view:{board:[]},clamp:(n,a,b)=>Math.max(a,Math.min(b,n)),swapPath:(_,a,b)=>[a,b],swapCells:(...args)=>{swaps.push(args);return true;}});
+ vm.runInContext(source,context);
+ for(const [r,c,x,y,tr,tc] of [[2,5,400,225,2,6],[2,1,-20,225,2,0],[1,2,135,60,0,2],[4,2,135,450,5,2]]){
+  context.drag={r,c,x,y,swaps:0,trail:[[r,c]]};vm.runInContext('stepDrag()',context);assert.equal(context.drag.r,tr);assert.equal(context.drag.c,tc);assert.equal(context.drag.swaps,1);
+ }
+ assert.equal(swaps.length,4);
+});

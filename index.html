@@ -29,6 +29,7 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
   -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
 *,*::before,*::after{ box-sizing:border-box; }
 #app{ position:relative; width:100%; height:100%; overflow:hidden; }
+body{touch-action:manipulation}
 #game{ position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none; }
 .screen{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; padding:1.25rem; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 .hidden{ display:none !important; }
@@ -4353,8 +4354,12 @@ function boardCellAt(x, y) {
   if (c < 0 || c >= CONFIG.COLS || r < 0 || r >= CONFIG.ROWS) return null;
   return { r, c };
 }
+// 最初の指だけを操作に使う。ボタン上に置いた2本目も無視する。
+document.addEventListener("pointerdown",event=>{
+  if(event.pointerType==="touch" && event.isPrimary===false){event.preventDefault();event.stopImmediatePropagation();}
+},{capture:true,passive:false});
 canvas.addEventListener("pointerdown", (e) => {
-  if (clock.paused) return;
+  if (clock.paused || tap || drag) return;
   Sound.init();
   const p = localPt(e);
   if (scene === "battle" && phase === "resolve") { fastForwardTurn(); e.preventDefault(); return; }
@@ -4403,6 +4408,7 @@ function endPointer(e) {
 canvas.addEventListener("pointerup", endPointer);
 canvas.addEventListener("pointercancel", endPointer);
 window.addEventListener("blur",cancelTap);
+canvas.addEventListener("lostpointercapture",e=>{if(tap?.id===e.pointerId)cancelTap();});
 
 function stepDrag() {
   const cell = L.cell;
@@ -4413,7 +4419,8 @@ function stepDrag() {
   const ix = fx_ - tc, iy = fy_ - tr;
   const inner = ix > CONFIG.DIAG_INNER && ix < 1-CONFIG.DIAG_INNER && iy > CONFIG.DIAG_INNER && iy < 1-CONFIG.DIAG_INNER;
   const far = Math.abs(tr - drag.r) > 1 || Math.abs(tc - drag.c) > 1;
-  if (!inner && !far) return;
+  const outside = drag.x < L.bx || drag.x >= L.bx + L.bw || drag.y < L.by || drag.y >= L.by + L.bh;
+  if (!inner && !far && !outside) return;
   const path = swapPath(view.board,[drag.r,drag.c],[tr,tc]);
   for (const [r,c] of path.slice(1)) {
     if (!swapCells(drag.r,drag.c,r,c)) break;
