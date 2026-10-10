@@ -219,6 +219,25 @@ button:not(:disabled):active,summary:active{transform:translateY(1px);box-shadow
 .roster-card[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
 .roster-card.unjoined{color:var(--ink-2)}
 .team-join-condition{color:var(--gold)}
+#team .slot,#team .roster-card{touch-action:pan-y pinch-zoom;-webkit-user-drag:none}
+#team img{-webkit-user-drag:none;pointer-events:none}
+.team-drag-band{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);z-index:35;height:min(90px,20vh);max-height:min(120px,20vh);padding:5px 10px;display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:2px;background:#16122A;border-bottom:1px solid var(--gold);pointer-events:none;overflow:hidden;font-size:.72rem}
+.team-drag-line{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.team-drag-line .emblem,.team-drag-line .chip{width:24px;height:24px;max-width:24px;flex:0 0 24px;margin:0}
+.team-drag-line .chip{font-size:14px}
+.team-drag-line>strong,.team-drag-line>span{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.team-drag-line>strong{flex:1}
+.team-drag-line .team-drag-next{flex:1;color:var(--gold)}
+.team-drag-line .team-art-tag{flex:0 1 auto;max-width:24%;padding:1px 4px;background:var(--panel-2);font-size:.65rem}
+.team-drag-ghost{position:fixed;left:0;top:0;width:62px;z-index:36;padding:3px;background:#221C3E;border:1px solid var(--gold);box-shadow:0 4px 12px #0008;pointer-events:none;opacity:.9;will-change:transform}
+.team-drag-ghost .emblem{width:100%;margin:0}
+.team-drag-ghost>small{display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:.65rem;text-align:center}
+.team-dragging .team-slots{position:fixed;left:var(--team-drag-left);top:var(--team-drag-top);width:var(--team-drag-width);z-index:34;margin:0;padding:4px;background:#0B0916;border:1px solid var(--rule)}
+.team-dragging .slot.drop-ready{border-color:#A89658}
+.team-dragging .slot.drop-over,.team-dragging .roster-grid.drop-over{outline:2px solid var(--gold);outline-offset:-2px;box-shadow:inset 0 0 9px #FFE3A033}
+.team-drag-source{opacity:.4}
+.team-dragging #teamMemberPanel{visibility:hidden}
+@media(prefers-reduced-motion:reduce){.team-drag-ghost{box-shadow:none;opacity:.75;will-change:auto}}
 .portrait{text-align:center;padding:1rem}
 .wallet{color:var(--gold);font-weight:700}
 .join-card{position:relative;overflow:hidden}
@@ -251,6 +270,8 @@ button:not(:disabled):active,summary:active{transform:translateY(1px);box-shadow
 
   <section id="home" class="screen hub hidden"><div class="col" id="homeContent"></div></section>
   <section id="team" class="screen hub hidden"><div class="col" id="teamContent"></div></section>
+  <aside id="teamDragBand" class="team-drag-band hidden" aria-label="つかんだ仲間の能力"></aside>
+  <div id="teamDragGhost" class="team-drag-ghost hidden" aria-hidden="true"></div>
   <section id="roster" class="screen hub hidden"><div class="col" id="rosterContent"></div></section>
   <section id="detail" class="screen hub hidden"><div class="col" id="detailContent"></div></section>
   <section id="select" class="screen hidden">
@@ -360,6 +381,8 @@ const CONFIG = {
     crow: [{type:"comboAtk",min:10,mult:6}],
   },
   ENEMY_STATUS_MAX_WIDTH: 150, ENEMY_STATUS_MIN_WIDTH: 30, ENEMY_REGEN_RATE: 0.05, ENDURE_HP: 0.5, ENEMY_DAMAGE_CAP: 50000, COMBO_ABSORB_MIN: 7, LOCK_COUNT: 6, ENEMY_STATUS_TURNS: 3, ENEMY_SKILL_TIME: 0.45, ENEMY_STATUS_TIME: 0.15, TRANSFORM_TIME: 0.55, ATTR_CYCLE: [0,1,2,3,4], ATTR_CHANGE_EVERY: 3,
+  TEAM_DRAG_HOLD_MS: 250, TEAM_DRAG_SLOP: 8, TEAM_DRAG_EDGE: 48, TEAM_DRAG_SCROLL: 320,
+  TEAM_DRAG_GHOST: 62, TEAM_DRAG_GAP: 8, TEAM_DRAG_CLICK_MS: 500,
   DARK_TURNS: 2, DARK_COUNT: 8, BOARD_STATUS_TIME: 0.1,
   POISON_COLOR: 6, POISON_RATE: 0.03, HAZARD_FX_TIME: 0.3,
   MATCH_MIN: 3,
@@ -4675,6 +4698,7 @@ function emblem(ch, large = false) {
   return src ? '<img class="emblem' + (large ? ' large' : '') + '" src="' + src + '" alt="' + alt + '">' : '<span class="chip" style="--c:' + RUNES[ch.attr].base + '">' + ch.kanji + '</span>';
 }
 function menuScene(id) {
+  cancelTeamDrag();
   leaveBattle(); scene = id; $("menuBtn").classList.add("hidden"); $("speedBtn").classList.add("hidden"); $("muteBtn").classList.add("hidden"); show(id); $(id).scrollTop = 0;
   Sound.play("menu"); Sound.setMask([1,0,.6,0]);
 }
@@ -4688,10 +4712,11 @@ function showHome() {
 function todayKey() { const date = new Date(); return [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-"); }
 function joinText(ch) { return ch.joinDungeon ? "ダンジョン" + ch.joinDungeon.slice(1) + "クリアで加入" : "最初から"; }
 function showTeam() {
+  cancelTeamDrag();
   const scrollTop = scene === "team" ? $("team").scrollTop : 0;
   const team = saveData.teams[saveData.teamIndex], prepared = prepareTeam(saveData);
   teamSelected ||= team.members[teamSlot] || team.members[0];
-  $("teamContent").innerHTML = '<header class="sel-head"><h2>編成</h2><button id="teamHomeBtn" class="btn ghost">ホームへ</button></header><div class="team-tabs">' + Array.from({length:CONFIG.TEAM_MAX},(_,i) => '<button class="btn team-tab" data-index="' + i + '" aria-pressed="' + (i === saveData.teamIndex) + '">編成' + (i+1) + '</button>').join("") + '</div><p class="board-note">枠と仲間を選び、能力を確認して「この枠に入れる」で入れ替え。左端がリーダー。</p><div class="team-slots">' + Array.from({length:CONFIG.TEAM_MEMBERS},(_,i) => {
+  $("teamContent").innerHTML = '<header class="sel-head"><h2>編成</h2><button id="teamHomeBtn" class="btn ghost">ホームへ</button></header><div class="team-tabs">' + Array.from({length:CONFIG.TEAM_MAX},(_,i) => '<button class="btn team-tab" data-index="' + i + '" aria-pressed="' + (i === saveData.teamIndex) + '">編成' + (i+1) + '</button>').join("") + '</div><p class="board-note">タップで能力を確認、長押しで枠へ運んで編成。枠から一覧へ運ぶと外す。左端がリーダー。</p><div class="team-slots">' + Array.from({length:CONFIG.TEAM_MEMBERS},(_,i) => {
     const id = team.members[i], ch = CHARS.find(member => member.id === id);
     return '<button class="slot" data-slot="' + i + '" aria-label="' + (i === 0 ? 'リーダー' : '枠'+(i+1)) + '" aria-pressed="' + (i === teamSlot) + '">' + (ch ? emblem(ch) + '<small>' + ch.name + '<br>Lv' + saveData.roster[id].lv + '</small>' : '<span>＋</span><small>空き</small>') + '</button>';
   }).join("") + '</div><p class="leader">' + prepared.party[0].leader.name + '：' + prepared.party[0].leader.desc + '</p><p class="board-note" id="teamTotals">チームHP ' + fmt(prepared.teamMax) + ' ／回復力 ' + fmt(prepared.rcv) + '</p><button id="removeMemberBtn" class="btn ghost"' + (team.members.length <= 1 || teamSlot >= team.members.length ? ' disabled' : '') + '>選んだ枠を空ける</button><section id="teamMemberPanel" class="team-member-panel" aria-label="選んだ仲間の能力"></section><h3>仲間</h3><div class="roster-grid">' + CHARS.map(ch => '<button class="roster-card' + (!saveData.roster[ch.id] ? ' unjoined' : '') + '" data-id="' + ch.id + '" aria-pressed="' + (ch.id === teamSelected) + '">' + emblem(ch) + '<strong>' + ch.name + '</strong><small>' + (saveData.roster[ch.id] ? 'Lv' + saveData.roster[ch.id].lv + (team.members.includes(ch.id) ? '　編成中' : '') : joinText(ch)) + '</small></button>').join("") + '</div><p class="board-note">変更は自動保存されます。編成は1〜5体、同じ仲間は1体まで。</p>';
@@ -4711,6 +4736,123 @@ function showTeam() {
   bindButton("removeMemberBtn",() => {const members=[...team.members];members.splice(teamSlot,1);adoptSave(setTeam(saveData,saveData.teamIndex,members));teamSlot=Math.min(teamSlot,members.length-1);teamSelected=members[teamSlot];showTeam();});
   renderTeamMemberPanel(); menuScene("team"); $("team").scrollTop=scrollTop;
 }
+// ===== TEAM DRAG (SCENE / INPUT) =====
+// 画面上の入れ替え案だけを作り、保存の検証は既存のsetTeamに任せる。
+function teamDropMembers(members, source, target, joined) {
+  if (!target || !joined) return null;
+  const next=[...members], existing=next.indexOf(source.id);
+  if (target.kind === "roster") {
+    if (source.kind !== "slot" || existing < 0 || next.length <= 1) return null;
+    next.splice(existing,1); return next;
+  }
+  if (target.kind !== "slot" || !Number.isInteger(target.slot) || target.slot < 0 || target.slot >= CONFIG.TEAM_MEMBERS) return null;
+  const slot=Math.min(target.slot,next.length);
+  if (existing >= 0) {
+    if (slot < next.length) [next[existing],next[slot]]=[next[slot],next[existing]];
+    else {next.splice(existing,1);next.push(source.id);}
+  } else next[slot]=source.id;
+  return next;
+}
+function teamDragBandHtml(ch, member) {
+  const learned=CONFIG.ARTS.filter(art=>art.lv<=member.lv), next=CONFIG.ARTS.find(art=>art.lv>member.lv);
+  const leader=ch.leader.desc.split("。")[0];
+  return '<div class="team-drag-line">'+emblem(ch)+'<strong>'+ch.name+' ／ '+RUNES[ch.attr].name+' ／ Lv'+member.lv+'</strong></div>'
+    +'<div class="team-drag-line"><strong>'+leader+' ／ '+member.skill.name+' '+member.skill.turns+'T</strong></div>'
+    +'<div class="team-drag-line">'+learned.map(art=>'<span class="team-art-tag">'+artName(ch,art.tier)+'</span>').join("")
+    +(next?'<span class="team-drag-next">次 Lv'+next.lv+' '+artName(ch,next.tier)+'</span>':'')+'</div>';
+}
+let teamDrag=null, teamDragClickUntil=0;
+function teamDragTarget(x,y) {
+  const node=document.elementFromPoint(x,y), slot=node?.closest("#team .slot");
+  if (slot) return {kind:"slot",slot:Number(slot.dataset.slot),node:slot};
+  const grid=$("teamContent").querySelector(".roster-grid"), r=grid?.getBoundingClientRect();
+  if (r && x>=r.left && x<=r.right && y>=r.top && y<=r.bottom) return {kind:"roster",node:grid};
+  return null;
+}
+function positionTeamDrag() {
+  const d=teamDrag;if(!d?.active)return;
+  const ghost=$("teamDragGhost"), band=$("teamDragBand").getBoundingClientRect();
+  const x=clamp(d.x+CONFIG.TEAM_DRAG_GAP,0,innerWidth-ghost.offsetWidth), y=clamp(d.y+CONFIG.TEAM_DRAG_GAP,band.bottom+CONFIG.TEAM_DRAG_GAP,innerHeight-ghost.offsetHeight);
+  // 軽減設定では拡大・傾き・追従の遅れを付けず、静かな紋章を直接移動する。
+  ghost.style.transform='translate('+Math.round(x)+'px,'+Math.round(y)+'px)';
+  const target=teamDragTarget(d.x,d.y), joined=!!saveData.roster[d.id];
+  $("teamContent").querySelectorAll(".drop-over").forEach(node=>node.classList.remove("drop-over"));
+  if (target && joined && (target.kind==="slot" || (d.kind==="slot"&&d.members.length>1)))target.node.classList.add("drop-over");
+}
+function teamDragFrame(now) {
+  const d=teamDrag;if(!d?.active)return;
+  const dt=Math.min(.05,(now-(d.lastFrame||now))/1000);d.lastFrame=now;
+  const screen=$("team"), grid=$("teamContent").querySelector(".roster-grid").getBoundingClientRect(), slots=$("teamContent").querySelector(".team-slots").getBoundingClientRect();
+  const top=slots.bottom+CONFIG.TEAM_DRAG_GAP, bottom=screen.getBoundingClientRect().bottom-CONFIG.TEAM_DRAG_GAP, edge=CONFIG.TEAM_DRAG_EDGE;
+  if(d.x>=grid.left && d.x<=grid.right && d.y>=top && d.y<=bottom) {
+    let rate=0;
+    if(d.y<top+edge && grid.top<top+edge)rate=-(top+edge-d.y)/edge;
+    else if(d.y>bottom-edge && grid.bottom>bottom-edge)rate=(d.y-bottom+edge)/edge;
+    screen.scrollTop+=clamp(rate,-1,1)*CONFIG.TEAM_DRAG_SCROLL*dt;
+  }
+  positionTeamDrag();d.frame=requestAnimationFrame(teamDragFrame);
+}
+function beginTeamDrag(d) {
+  if(teamDrag!==d || scene!=="team" || !d.node.isConnected)return;
+  d.active=true;d.members=[...saveData.teams[saveData.teamIndex].members];d.teamIndex=saveData.teamIndex;
+  const ch=CHARS.find(ch=>ch.id===d.id), member=growCharacter(ch,saveData.roster[d.id]);
+  const band=$("teamDragBand"),ghost=$("teamDragGhost"),slots=$("teamContent").querySelector(".team-slots"),screen=$("team");
+  band.innerHTML=teamDragBandHtml(ch,member);band.dataset.id=ch.id;band.classList.remove("hidden");
+  ghost.innerHTML=emblem(ch)+'<small>'+ch.name+'</small>';ghost.style.width=CONFIG.TEAM_DRAG_GHOST+'px';ghost.classList.remove("hidden");
+  const rect=slots.getBoundingClientRect(),style=getComputedStyle(slots);d.placeholder=document.createElement("div");
+  d.placeholder.style.height=(rect.height+parseFloat(style.marginTop)+parseFloat(style.marginBottom))+'px';d.placeholder.setAttribute("aria-hidden","true");slots.before(d.placeholder);
+  const bounds=$("teamContent").getBoundingClientRect();screen.style.setProperty("--team-drag-left",bounds.left+'px');screen.style.setProperty("--team-drag-width",bounds.width+'px');screen.style.setProperty("--team-drag-top",(band.getBoundingClientRect().bottom+CONFIG.TEAM_DRAG_GAP)+'px');
+  screen.classList.add("team-dragging");d.node.classList.add("team-drag-source");
+  slots.querySelectorAll(".slot").forEach(node=>node.classList.toggle("drop-ready",!!saveData.roster[ch.id]));
+  try {d.node.setPointerCapture(d.pointerId);} catch(error) {}
+  positionTeamDrag();d.frame=requestAnimationFrame(teamDragFrame);
+}
+function cancelTeamDrag(suppressClick=false) {
+  const d=teamDrag;if(!d)return;teamDrag=null;clearTimeout(d.timer);cancelAnimationFrame(d.frame);
+  if(suppressClick||d.active)teamDragClickUntil=performance.now()+CONFIG.TEAM_DRAG_CLICK_MS;
+  $("teamDragBand").classList.add("hidden");$("teamDragGhost").classList.add("hidden");
+  $("team").classList.remove("team-dragging");d.placeholder?.remove();
+  $("teamContent").querySelectorAll(".drop-ready,.drop-over,.team-drag-source").forEach(node=>node.classList.remove("drop-ready","drop-over","team-drag-source"));
+  try {if(d.node.hasPointerCapture(d.pointerId))d.node.releasePointerCapture(d.pointerId);} catch(error) {}
+}
+$("teamContent").addEventListener("pointerdown",event=>{
+  if(scene!=="team" || teamDrag || event.button!==0 || event.isPrimary===false)return;
+  const node=event.target.closest(".roster-card,.slot");if(!node)return;
+  const kind=node.classList.contains("slot")?"slot":"roster",slot=Number(node.dataset.slot);
+  const id=kind==="slot"?saveData.teams[saveData.teamIndex].members[slot]:node.dataset.id;if(!id)return;
+  teamDragClickUntil=0;
+  const d={node,id,kind,slot,pointerId:event.pointerId,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,active:false};
+  teamDrag=d;d.timer=setTimeout(()=>beginTeamDrag(d),CONFIG.TEAM_DRAG_HOLD_MS);
+});
+window.addEventListener("pointermove",event=>{
+  const d=teamDrag;if(!d || event.pointerId!==d.pointerId)return;
+  d.x=event.clientX;d.y=event.clientY;
+  if(!d.active){if(Math.hypot(d.x-d.startX,d.y-d.startY)>CONFIG.TEAM_DRAG_SLOP)cancelTeamDrag(true);return;}
+  event.preventDefault();positionTeamDrag();
+},{passive:false});
+window.addEventListener("pointerup",event=>{
+  const d=teamDrag;if(!d || event.pointerId!==d.pointerId)return;
+  if(!d.active){cancelTeamDrag();return;}
+  event.preventDefault();const target=teamDragTarget(event.clientX,event.clientY),joined=!!saveData.roster[d.id];
+  const members=teamDropMembers(d.members,d,target,joined);cancelTeamDrag(true);
+  if(!joined && target?.kind==="slot"){showToast(joinText(CHARS.find(ch=>ch.id===d.id)));return;}
+  if(d.kind==="slot" && target?.kind==="roster" && d.members.length===1){showToast("最後の1体は外せません");return;}
+  if(!members || members.join(",")===d.members.join(","))return;
+  adoptSave(setTeam(saveData,d.teamIndex,members));teamSlot=Math.max(0,members.indexOf(d.id));teamSelected=members[teamSlot];showTeam();
+});
+window.addEventListener("pointercancel",event=>{if(teamDrag?.pointerId===event.pointerId)cancelTeamDrag(true);});
+$("teamContent").addEventListener("lostpointercapture",event=>{if(teamDrag?.pointerId===event.pointerId)cancelTeamDrag(true);});
+$("team").addEventListener("touchmove",event=>{if(teamDrag?.active)event.preventDefault();},{passive:false});
+$("team").addEventListener("scroll",()=>{if(teamDrag&&!teamDrag.active)cancelTeamDrag(true);},{passive:true});
+$("team").addEventListener("click",event=>{
+  if(event.detail>0 && (teamDrag?.active || performance.now()<teamDragClickUntil)){event.preventDefault();event.stopImmediatePropagation();teamDragClickUntil=0;}
+},{capture:true});
+$("teamContent").addEventListener("dragstart",event=>event.preventDefault());
+window.addEventListener("blur",()=>cancelTeamDrag(true));
+window.addEventListener("resize",()=>cancelTeamDrag(true));
+document.addEventListener("visibilitychange",()=>{if(document.hidden)cancelTeamDrag(true);});
+document.addEventListener("keydown",event=>{if(teamDrag && event.key==="Escape"){event.preventDefault();cancelTeamDrag(true);}});
+// ===== TEAM DRAG END =====
 // 編成で選んだ仲間の表示。能力の計算は既存のgrowCharacterを使う。
 function renderTeamMemberPanel() {
   const ch = CHARS.find(member => member.id === teamSelected);

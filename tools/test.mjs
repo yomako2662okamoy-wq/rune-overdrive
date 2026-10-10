@@ -1022,3 +1022,37 @@ test('形態表示は再生中の形態を使って1/3・2/3・3/3を示し、�
  for(const form of [1,2,3]) {context.enemy.form=3;context.enemy.v={form};assert.equal(vm.runInContext('enemyFormLabel(enemy)',context),form+'/3');}
  context.enemy={};assert.equal(vm.runInContext('enemyFormLabel(enemy)',context),'');
 });
+
+
+test('編成ドラッグの操作案は追加・交換・並べ替え・左詰め削除を既存setTeamで保存できる',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function teamDropMembers('),html.indexOf('function teamDragBandHtml('));
+ const context=vm.createContext({CONFIG:plain(config)});vm.runInContext(source,context);
+ const data=plain(logic.createSave());data.roster.kagura={lv:1,exp:0,skillLv:1};
+ const original=['akane','mizuha','yomogi','ruka','nocto'];
+ function drop(members,id,kind,target,joined=true){context.members=members;context.source={id,kind};context.target=target;context.joined=joined;const next=plain(vm.runInContext('teamDropMembers(members,source,target,joined)',context));if(next)assert.deepEqual(plain(logic.setTeam(data,0,next).teams[0]),{leader:next[0],members:next});return next;}
+ assert.deepEqual(drop(original,'kagura','roster',{kind:'slot',slot:1}),['akane','kagura','yomogi','ruka','nocto']);
+ assert.deepEqual(drop(original,'nocto','roster',{kind:'slot',slot:0}),['nocto','mizuha','yomogi','ruka','akane']);
+ assert.deepEqual(drop(original,'mizuha','slot',{kind:'slot',slot:3}),['akane','ruka','yomogi','mizuha','nocto']);
+ assert.deepEqual(drop(original,'mizuha','slot',{kind:'roster'}),['akane','yomogi','ruka','nocto']);
+ assert.deepEqual(drop(['akane'],'kagura','roster',{kind:'slot',slot:4}),['akane','kagura'],'空き枠は従来と同じ左詰め');
+ assert.deepEqual(drop(original.slice(0,3),'akane','slot',{kind:'slot',slot:4}),['mizuha','yomogi','akane']);
+ for(const target of [null,{kind:'outside'},{kind:'slot',slot:-1},{kind:'slot',slot:5}])assert.equal(drop(original,'akane','slot',target),null);
+ assert.equal(drop(original,'crow','roster',{kind:'slot',slot:0},false),null);
+ assert.equal(drop(['akane'],'akane','slot',{kind:'roster'}),null);
+ assert.equal(drop(original,'akane','roster',{kind:'roster'}),null);
+ assert.deepEqual(original,['akane','mizuha','yomogi','ruka','nocto'],'操作案は保存前の配列を変更しない');
+});
+
+test('つかんだ能力帯は3行に顔・短いリーダー・技能ターン・習得技と次の1技だけを出す',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function teamDragBandHtml('),html.indexOf('let teamDrag=null'));
+ const context=vm.createContext({CONFIG:plain(config),RUNES:[{name:'紅'}],emblem:()=>'<img class="emblem">',artName:(ch,tier)=>['紅閃','紅蓮斬','緋焔乱舞','紅蓮天墜'][tier-1]});vm.runInContext(source,context);
+ context.ch={name:'アカネ',attr:0,leader:{desc:'全員の攻撃2倍。後半の長い説明'}};context.member={lv:20,hp:999999,skill:{name:'紅蓮変換',turns:5,desc:'説明は出さない'}};
+ const band=vm.runInContext('teamDragBandHtml(ch,member)',context);
+ assert.equal((band.match(/class="team-drag-line"/g)||[]).length,3);
+ for(const text of ['アカネ','紅','Lv20','全員の攻撃2倍','紅蓮変換 5T','紅閃','紅蓮斬','次 Lv25 緋焔乱舞'])assert(band.includes(text),text);
+ for(const text of ['後半の長い説明','説明は出さない','999999','紅蓮天墜'])assert(!band.includes(text),text);
+ context.member.lv=1;const unjoined=vm.runInContext('teamDragBandHtml(ch,member)',context);assert(unjoined.includes('次 Lv5 紅閃'));assert(!unjoined.includes('紅蓮斬'));
+ context.member.lv=50;const max=vm.runInContext('teamDragBandHtml(ch,member)',context);assert(max.includes('紅蓮天墜'));assert(!max.includes('次 Lv'));
+});
