@@ -3468,6 +3468,8 @@ function drawEnemyStatuses(enemy,x,y,width) {
   });
   return Math.ceil(entries.length/columns)*(size+gap);
 }
+function quietControls() { return !settings.shake || settings.flash || reducedMotion(); }
+function targetIndicatorRotation() { return quietControls() ? 0 : clock.real * 1.5; }
 function drawEnemyHud(e, i) {
   const v = e.v, cell = L.cell, R = RUNES[v.attr ?? e.attr];
   const bw = Math.max(72, v.size * 0.78), bh = Math.max(5, cell * 0.09);
@@ -3500,7 +3502,7 @@ function drawEnemyHud(e, i) {
   ctx.strokeStyle = danger ? "rgba(255,120,100,0.9)" : rgba(R.light, 0.5); ctx.lineWidth = 1; ctx.stroke();
   label(ct, v.x, ty + 1, fs, danger ? "#FFC4B8" : "#F1EEFF");
   if (state.target === i && phase !== "over") {
-    const r = v.size * 0.52, rot = clock.real * 1.5, k = r * 0.28;
+    const r = v.size * 0.52, rot = targetIndicatorRotation(), k = r * 0.28;
     ctx.save(); ctx.translate(v.x, v.y); ctx.rotate(rot);
     ctx.strokeStyle = "#FFE3A0"; ctx.lineWidth = 2.5;
     for (let q = 0; q < 4; q++) {
@@ -5372,7 +5374,7 @@ if (DEBUG_MODE) window.RUNE_DEBUG = {
   qualityBoundary(){applyQualityBoundary();},
   particleProbe(n){spawnParticles(L.W/2,L.H/2,0,n);},
 
-  get input() { return { drag: drag ? cloneData(drag) : null, timer:dragTimerGeometry() }; },
+  get input() { return { drag: drag ? cloneData(drag) : null, timer:dragTimerGeometry(), targetRotation:targetIndicatorRotation() }; },
   get debugSession() { return debugSession; },
   get odOverlay() { return ov.od ? { ...ov.od } : null; },
   get pending() { return fx.pending + projectiles.length; },

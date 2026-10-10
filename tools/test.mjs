@@ -862,3 +862,13 @@ test('指の時間輪は実時間の残量を使い、画面内に収まり、�
  vm.runInContext('view.timing=false',context);assert.equal(vm.runInContext('dragTimerGeometry().remaining',context),5);
  vm.runInContext('drag=null',context);assert.equal(vm.runInContext('dragTimerGeometry()',context),null);
 });
+
+
+test('狙い印は揺れオフ・軽減オン・OSの動き軽減で回転せず、通常設定でだけ回る',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function quietControls()'),html.indexOf('function drawEnemyHud('));
+ let reduced=false;const context=vm.createContext({settings:{shake:true,flash:false},reducedMotion:()=>reduced,clock:{real:2}});vm.runInContext(source,context);
+ assert.equal(vm.runInContext('targetIndicatorRotation()',context),3);
+ for(const expr of ['settings.shake=false','settings.shake=true;settings.flash=true']){vm.runInContext(expr,context);assert.equal(vm.runInContext('targetIndicatorRotation()',context),0);}
+ vm.runInContext('settings.flash=false',context);reduced=true;assert.equal(vm.runInContext('targetIndicatorRotation()',context),0);
+});
