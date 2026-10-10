@@ -59,7 +59,12 @@ body{touch-action:manipulation}
 .btn.primary:hover{ --c:#F2D38E; }
 .btn.big{ font-size:1.1rem; padding:1.1rem 2.4rem; --cut:14px; }
 .btn.ghost{ --c:#16122A; color:var(--gold); }
-.btn.small{ font-size:.85rem; padding:.6rem 1rem; min-height:38px; --cut:8px; }
+.btn.small{ font-size:.85rem; padding:.6rem 1rem; min-height:44px; --cut:8px; }
+button,summary,input,textarea,select{min-width:44px;min-height:44px}
+button:not(:disabled):active,summary:active{transform:translateY(1px);box-shadow:inset 0 3px 5px rgba(0,0,0,.45)}
+:root[data-quiet-ui="true"] button:active,:root[data-quiet-ui="true"] summary:active{transform:none}
+@media(prefers-reduced-motion:reduce){button:active,summary:active{transform:none}}
+.howto summary{padding:.45rem 0;line-height:1.8}
 .btn.danger{ color:#FFB4A8; }
 .btn:focus-visible, .dcard:focus-visible, .seg button:focus-visible, .menu-btn:focus-visible, summary:focus-visible{ outline:2px solid var(--gold); outline-offset:3px; }
 .btn:disabled{ opacity:.45; cursor:default; }
@@ -381,7 +386,7 @@ const CONFIG = {
   PARTICLES: [8, 16, 24, 32, 48],
   MAX_PARTICLES: 400,
   DRAG_LIFT: { small: 0.3, medium: 0.6, large: 0.9 }, DIAG_INNER: 0.2, LONG_PRESS: 0.4,
-  DRAG_TIMER_RADIUS: 13, DRAG_TIMER_OFFSET: 34, DRAG_TRAIL: 8, SWAP_VIB_MS: 5, DMG_STACK: 0.35, DMG_TOTAL_HOLD: 0.8,
+  CONTROL_MIN: 44, CONTROL_PRESS: .96, IGNORED_TOUCH_LIMIT: 8, DRAG_TIMER_RADIUS: 13, DRAG_TIMER_OFFSET: 34, DRAG_TRAIL: 8, SWAP_VIB_MS: 5, DMG_STACK: 0.35, DMG_TOTAL_HOLD: 0.8,
   DPR_MAX: 3,
   QUALITY_DPR: [1.5,2,3], QUALITY_PARTICLES: [.35,.6,1], QUALITY_DOWN_FPS: 45, QUALITY_UP_FPS: 57,
   QUALITY_WINDOW: 2, QUALITY_UP_HOLD: 10, IDLE_FPS: 30, GRADIENT_WIDTH: 512,
@@ -3478,6 +3483,7 @@ function drawEnemyStatuses(enemy,x,y,width) {
 function quietControls() { return !settings.shake || settings.flash || reducedMotion(); }
 function targetIndicatorRotation() { return quietControls() ? 0 : clock.real * 1.5; }
 function drawEnemyHud(e, i) {
+  if(tap && enemyHit(e,tap.x,tap.y)) {const v=e.v;ctx.fillStyle="rgba(0,0,0,.12)";chamferRect(ctx,v.x-v.size*.45,v.y-v.size*.5,v.size*.9,v.size,6);ctx.fill();}
   const v = e.v, cell = L.cell, R = RUNES[v.attr ?? e.attr];
   const bw = Math.max(72, v.size * 0.78), bh = Math.max(5, cell * 0.09);
   const bx = v.x - bw / 2, by = v.y + v.size * 0.46 + 9;
@@ -3555,8 +3561,9 @@ function drawParty() {
     const p = L.icons[i], m = state.party[i];
     if (!m) continue;
     // 待機中はゆっくり呼吸し、攻撃するときは大きく前へ跳ねる
-    const breath = phase === "input" && !reducedMotion() ? 1 + CONFIG.ICON_BREATH * Math.sin(clock.real * 2.2 + i * 0.7) : 1;
-    const b = view.iconBump[i], s = L.icon * (1 + b * 0.2) * breath;
+    const breath = phase === "input" && !quietControls() ? 1 + CONFIG.ICON_BREATH * Math.sin(clock.real * 2.2 + i * 0.7) : 1;
+    const pressed=!!tap && partyHit(i,tap.x,tap.y);
+    const b = view.iconBump[i], s = L.icon * (1 + b * 0.2) * breath * (pressed && !quietControls() ? CONFIG.CONTROL_PRESS : 1);
     const ready = m.cd === 0 && phase === "input";
     const y = p.y - b * L.cell * 0.24;
     if (pinch) {
@@ -3574,6 +3581,7 @@ function drawParty() {
     }
     const sprite = iconSpr[CHARS.findIndex(ch => ch.id === m.id)];
     if (sprite) ctx.drawImage(sprite, p.x - s / 2, y - s / 2, s, s);
+    if(pressed){ctx.fillStyle="rgba(0,0,0,.18)";chamferRect(ctx,p.x-s/2,y-s/2,s,s,s*.24);ctx.fill();ctx.strokeStyle="#FFE3A0";ctx.lineWidth=2;ctx.stroke();}
     if (ready) {
       ctx.strokeStyle = "rgba(255,240,200," + (0.6 + 0.4 * Math.sin(clock.real * 5 + i)) + ")"; ctx.lineWidth = 2;
       chamferRect(ctx, p.x - s / 2 - 1.5, y - s / 2 - 1.5, s + 3, s + 3, s * 0.24); ctx.stroke();
@@ -4354,10 +4362,26 @@ function boardCellAt(x, y) {
   if (c < 0 || c >= CONFIG.COLS || r < 0 || r >= CONFIG.ROWS) return null;
   return { r, c };
 }
+function partyHit(index,x,y) {
+  const p=L.icons[index],half=Math.max(CONFIG.CONTROL_MIN/2,L.icon/2+4);
+  return !!state.party[index] && !!p && Math.abs(x-p.x)<half && Math.abs(y-p.y)<half;
+}
+function enemyHit(enemy,x,y,detail=false) {
+  const v=enemy.v;
+  return enemy.hp>0 && Math.abs(x-v.x)<Math.max(CONFIG.CONTROL_MIN/2,v.size*(detail ? .5 : .45)) && Math.abs(y-v.y)<Math.max(CONFIG.CONTROL_MIN/2,v.size*(detail ? .55 : .5));
+}
 // 最初の指だけを操作に使う。ボタン上に置いた2本目も無視する。
+const ignoredTouches=new Set();
 document.addEventListener("pointerdown",event=>{
-  if(event.pointerType==="touch" && event.isPrimary===false){event.preventDefault();event.stopImmediatePropagation();}
+  if(event.pointerType==="touch" && event.isPrimary===false){
+    ignoredTouches.add(event.pointerId);
+    if(ignoredTouches.size>CONFIG.IGNORED_TOUCH_LIMIT)ignoredTouches.delete(ignoredTouches.values().next().value);
+    event.preventDefault();event.stopImmediatePropagation();
+  }else ignoredTouches.delete(event.pointerId);
 },{capture:true,passive:false});
+document.addEventListener("click",event=>{
+  if(event.pointerType==="touch" && ignoredTouches.has(event.pointerId)){ignoredTouches.delete(event.pointerId);event.preventDefault();event.stopImmediatePropagation();}
+},{capture:true});
 canvas.addEventListener("pointerdown", (e) => {
   if (clock.paused || tap || drag) return;
   Sound.init();
@@ -4440,14 +4464,14 @@ function swapCells(r1, c1, r2, c2) {
 }
 function handleTap(x, y) {
   if (phase !== "input") return;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < state.party.length; i++) {
     const p = L.icons[i];
-    if (Math.abs(x - p.x) < L.icon / 2 + 4 && Math.abs(y - p.y) < L.icon / 2 + 4) { if (!settings.skillConfirm && state.party[i].cd === 0) useSkill(i); else openSkill(i); return; }
+    if (partyHit(i,x,y)) { if (!settings.skillConfirm && state.party[i].cd === 0) useSkill(i); else openSkill(i); return; }
   }
   for (let i = 0; i < state.enemies.length; i++) {
     const e = state.enemies[i], v = e.v;
     if (e.hp <= 0) continue;
-    if (Math.abs(x - v.x) < v.size * 0.45 && Math.abs(y - v.y) < v.size * 0.5) {
+    if (enemyHit(e,x,y)) {
       state.target = state.target === i ? -1 : i;
       Sound.sfx.tap();
       return;
@@ -5037,7 +5061,9 @@ function openSaveImport(onClose) {
   openModal("セーブを読み込む", body, [{ label: "設定へ戻る", primary: true, fn: () => openSettings(onClose) }]);
 }
 
+function syncControlMotion(){document.documentElement.dataset.quietUi=String(quietControls());}
 function applySettings() {
+  syncControlMotion();
   Sound.setSfx(settings.sfx); Sound.setBgm(settings.bgm); Sound.setMute(settings.mute);
   if ($("speedBtn")) $("speedBtn").textContent="×"+SPEED[settings.speed];
   const mb = $("muteBtn");
@@ -5074,7 +5100,7 @@ function openPause() {
 function showHeldInfo(x,y) {
   for(let i=0;i<state.party.length;i++) {
     const p=L.icons[i],m=state.party[i];
-    if(Math.abs(x-p.x)<L.icon/2+4 && Math.abs(y-p.y)<L.icon/2+4) {
+    if(partyHit(i,x,y)) {
       const panel=$("heldInfo");
       panel.innerHTML='<h3>'+m.name+' ／ Lv'+(m.lv||1)+'</h3><p><strong>'+m.skill.name+'</strong>（溜め '+m.skill.turns+'ターン・あと '+m.cd+'ターン）</p><p>'+m.skill.desc+'</p><p>リーダー：'+m.leader.name+'</p><p><strong>習得済みと次に覚える連鎖技</strong></p>'+growthHtml(m,m.lv||1,true,true);
       panel.style.width=Math.min(340,L.W-24)+"px";panel.style.maxHeight=(L.H-24)+"px";
@@ -5088,7 +5114,7 @@ function showHeldInfo(x,y) {
   for(const e of state.enemies) {
     if(e.hp<=0)continue;
     const v=e.v;
-    if(Math.abs(x-v.x)<v.size*.5 && Math.abs(y-v.y)<v.size*.55) {
+    if(enemyHit(e,x,y,true)) {
       const when=t=>t==="preempt"?"登場時":t.startsWith("every:")?t.slice(6)+"ターンごと":t.startsWith("turn:")?t.slice(5)+"ターン目":t.startsWith("hp:")?"HP"+t.slice(3)+"%未満":t;
       openModal(v.phaseName||e.name,"<p>HP "+fmt(e.hp)+" / "+fmt(e.maxHp)+"</p><p>攻撃 "+fmt(e.atk)+" ／ "+e.turn+"ターンごと（あと "+e.cd+"）</p><p>"+(e.skills||[]).map(s=>ENEMY_SKILL_NAMES[s.id]+"："+when(s.when)+(s.phase?"（形態"+s.phase+"）":"")).join("<br>")+"</p>"+(e.boss?"<p>大技："+e.bigName+" ／ "+(e.bigEvery||CONFIG.BOSS_BIG_EVERY)+"回ごと</p>":""),[{label:"閉じる",primary:true}]);return true;
     }
@@ -5412,7 +5438,7 @@ if (DEBUG_MODE) window.RUNE_DEBUG = {
   qualityBoundary(){applyQualityBoundary();},
   particleProbe(n){spawnParticles(L.W/2,L.H/2,0,n);},
 
-  get input() { return { drag: drag ? cloneData(drag) : null, timer:dragTimerGeometry(), targetRotation:targetIndicatorRotation() }; },
+  get input() { return { drag: drag ? cloneData(drag) : null, timer:dragTimerGeometry(), targetRotation:targetIndicatorRotation(), pressed:tap?state.party.findIndex((m,i)=>partyHit(i,tap.x,tap.y)):-1 }; },
   get debugSession() { return debugSession; },
   get odOverlay() { return ov.od ? { ...ov.od } : null; },
   get pending() { return fx.pending + projectiles.length; },
@@ -5429,6 +5455,8 @@ if (DEBUG_MODE) window.RUNE_DEBUG = {
   startBoss(i) { const d = DUNGEONS[i]; debugSession = true; galleryMode = false; return startRun({ ...d, floors: [d.floors[d.floors.length - 1]] }, i); },
 };
 
+syncControlMotion();
+motionQuery?.addEventListener?.("change",syncControlMotion);
 renderParty();
 loadAssets();
 window.addEventListener("resize", resize);

@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process';
 import { smokeTeam } from './smoke-team.mjs';
 import { smokeArt } from './smoke-art.mjs';
 import assert from 'node:assert/strict';
+import { smokeControls } from './smoke-controls.mjs';
 import { smokeUsability } from './smoke-usability.mjs';
 import { smokeDungeons } from './smoke-dungeons.mjs';
 import { createServer } from 'node:http';
@@ -55,6 +56,7 @@ try {
   await smokeArt(browser,url,root,errors);
   await smokeTeam(browser,url,root,errors);
   await smokeUsability(browser,url,root,errors);
+  await smokeControls(browser,url,root,errors);
   for (const testCase of [
     { board: '7x6', viewport: { width: 390, height: 844 } },
     { board: '6x5', viewport: { width: 375, height: 667 } },

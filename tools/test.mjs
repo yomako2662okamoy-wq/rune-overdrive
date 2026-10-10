@@ -1,3 +1,4 @@
+import './smoke-controls.mjs'; // 新しい確認モジュールも構文・importを検証（ブラウザは起動しない）
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
@@ -911,4 +912,15 @@ test('盤面外への移動は中央判定を通らなくても隣の端マス�
   context.drag={r,c,x,y,swaps:0,trail:[[r,c]]};vm.runInContext('stepDrag()',context);assert.equal(context.drag.r,tr);assert.equal(context.drag.c,tc);assert.equal(context.drag.swaps,1);
  }
  assert.equal(swaps.length,4);
+});
+
+
+test('仲間と敵のタップ領域は小さな絵でも44pxを確保し、空きや死亡敵は押せない',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function partyHit('),html.indexOf('// 最初の指だけを'));
+ const context=vm.createContext({CONFIG:{CONTROL_MIN:44},L:{icon:28,icons:[{x:100,y:100}]},state:{party:[{}]}});vm.runInContext(source,context);
+ assert.equal(vm.runInContext('partyHit(0,121,121)',context),true);assert.equal(vm.runInContext('partyHit(0,123,100)',context),false);assert.equal(vm.runInContext('partyHit(1,100,100)',context),false);
+ context.enemy={hp:1,v:{x:100,y:100,size:20}};
+ assert.equal(vm.runInContext('enemyHit(enemy,121,121)',context),true);assert.equal(vm.runInContext('enemyHit(enemy,123,100)',context),false);
+ context.enemy.hp=0;assert.equal(vm.runInContext('enemyHit(enemy,100,100)',context),false);
 });
