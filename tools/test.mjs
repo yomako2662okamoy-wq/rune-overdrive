@@ -1,3 +1,4 @@
+import './smoke-team.mjs'; // 編成の実入力テストの構文・importを検証
 import './smoke-dungeons.mjs'; // ダンジョン確認の構文・importも検証
 import './smoke-controls.mjs'; // 新しい確認モジュールも構文・importを検証（ブラウザは起動しない）
 import test from 'node:test';

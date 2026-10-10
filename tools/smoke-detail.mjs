@@ -406,7 +406,7 @@ try {
       d.setBoard(base);d.state.teamHp=d.state.teamMax;
       d.state.enemies[0]={kind:old.kind,name:'検証用の敵',attr:2,hp:490000,maxHp:1000000,atk:0,def:0,
         turn:99,cd:99,acts:0,boss:false,enraged:false,elapsed:skill.id==='attrChange'?2:0,skills:[skill],v:old.v};
-      if(skill.id==='transform')Object.assign(d.state.enemies[0],d.logic.hitEnemy(d.state.enemies[0],999999,{attr:0,combos:10}).enemy);
+      if(skill.id==='transform'){const {v,...enemy}=d.state.enemies[0];Object.assign(d.state.enemies[0],d.logic.hitEnemy(enemy,999999,{attr:0,combos:10}).enemy);}
       Object.assign(old.v,{hp:d.state.enemies[0].hp,maxHp:1000000,ghost:d.state.enemies[0].hp,form:1,dead:false,dying:false,alpha:1,statuses:{},attr:2,phaseName:''});
       d.state.enemies.slice(1).forEach(e=>{e.hp=0;e.v.dead=true;});
       d.setSeed(77);
