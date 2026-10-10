@@ -23,9 +23,12 @@ export async function smokeUsability(browser,url,root,errors) {
  await page.locator('#dungeonList .dcard').first().click();await page.waitForFunction(()=>RUNE_DEBUG.phase==='input');
  const pos=await page.evaluate(()=>RUNE_DEBUG.visuals.layout.icons[0]);
  await page.evaluate(()=>RUNE_DEBUG.state.party[0].cd=0);
- await page.mouse.move(pos.x,pos.y);await page.mouse.down();await page.waitForTimeout(500);await page.mouse.up();
- assert.match(await page.locator('#modalBody').innerText(),/リーダー/);
- assert.equal(await page.evaluate(()=>RUNE_DEBUG.state.party[0].cd),0);await close();
+ await page.mouse.move(pos.x,pos.y);await page.mouse.down();await page.waitForTimeout(500);
+ assert.match(await page.locator('#heldInfo').innerText(),/リーダー/);
+ assert.match(await page.locator('#heldInfo').innerText(),/連鎖技/);
+ assert.equal(await page.locator('#modal').isVisible(),false);
+ await page.mouse.up();assert.equal(await page.locator('#heldInfo').isVisible(),false);
+ assert.equal(await page.evaluate(()=>RUNE_DEBUG.state.party[0].cd),0);
  await page.mouse.click(pos.x,pos.y);await page.waitForFunction(()=>RUNE_DEBUG.phase==='input'&&RUNE_DEBUG.state.party[0].cd>0);
  assert(await page.locator('#modal').evaluate(e=>e.classList.contains('hidden')));
  const enemy=await page.evaluate(()=>RUNE_DEBUG.state.enemies[0].v);

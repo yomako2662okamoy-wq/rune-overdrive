@@ -872,3 +872,14 @@ test('狙い印は揺れオフ・軽減オン・OSの動き軽減で回転せず
  for(const expr of ['settings.shake=false','settings.shake=true;settings.flash=true']){vm.runInContext(expr,context);assert.equal(vm.runInContext('targetIndicatorRotation()',context),0);}
  vm.runInContext('settings.flash=false',context);reduced=true;assert.equal(vm.runInContext('targetIndicatorRotation()',context),0);
 });
+
+
+test('長押しの連鎖技一覧は習得済みと次の技を共有の名前・条件で表示する',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const context=vm.createContext({});
+ vm.runInContext(html.slice(html.indexOf('const CONFIG ='),html.indexOf('// ===== UTIL ====='))+html.match(/^function artName\(.*$/m)[0]+'\n'+html.slice(html.indexOf('function perkText('),html.indexOf('// 仲間の詳細：立ち絵')),context);
+ const panel=vm.runInContext('growthHtml(CHARS[0],20,true,true)',context);
+ for(const word of ['紅閃','紅蓮斬','緋焔乱舞','Lv25','3連鎖で発動','5連鎖で発動','7連鎖で発動','未習得'])assert(panel.includes(word),word);
+ for(const word of ['攻撃 +','スキルの溜め','Lv35','紅蓮天墜'])assert(!panel.includes(word),word);
+ assert(vm.runInContext('growthHtml(CHARS[0],20)',context).includes('攻撃 +10%'),'既存の詳細は能力アップも保つ');
+});

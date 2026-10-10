@@ -197,6 +197,11 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
 .roster-card strong,.roster-card small{display:block}
 .roster-card small{color:var(--ink-2);font-size:.72rem;line-height:1.5}
 .roster-card:disabled{opacity:.45;cursor:default}
+.held-info{position:absolute;z-index:12;width:340px;max-width:calc(100% - 24px);padding:.65rem .8rem;background:#16122A;border:1px solid var(--gold);box-shadow:0 3px 12px rgba(0,0,0,.4);font-size:.76rem;line-height:1.4;pointer-events:none;overflow-y:auto;overflow-wrap:anywhere}
+.held-info h3{margin:0 0 .2rem;font-size:.9rem;color:var(--gold)}
+.held-info p{margin:.2rem 0}
+.held-info .growth li{grid-template-columns:2.4rem minmax(0,1fr) auto;gap:.35rem;padding:.22rem 0;font-size:.75rem}
+.held-info .growth small,.held-info .g-state{font-size:.68rem}
 .team-member-panel{margin:1rem 0;padding:.8rem;border:1px solid var(--rule);background:var(--panel);text-align:left;overflow-wrap:anywhere}
 .team-member-panel h3{margin:.7rem 0 .3rem;font-size:.94rem}
 .team-member-panel p{font-size:.85rem;line-height:1.65}
@@ -293,6 +298,7 @@ body{ height:100%; margin:0; overflow:hidden; overscroll-behavior:none; backgrou
     </div>
   </div>
 
+  <aside id="heldInfo" class="held-info hidden" role="tooltip" aria-label="仲間のスキルと連鎖技"></aside>
   <div id="fxGallery" class="fx-strip hidden" role="toolbar" aria-label="演出見本"></div>
 
   <div id="rotate" class="screen hidden"><p>縦向きにして遊んでね</p></div>
@@ -4339,7 +4345,8 @@ const Sound = (() => {
 
 // ===== INPUT =====
 let drag = null, tap = null;
-function cancelTap() { if (tap?.timer) clearTimeout(tap.timer); tap = null; }
+function hideHeldInfo() { $("heldInfo").classList.add("hidden"); }
+function cancelTap() { if (tap?.timer) clearTimeout(tap.timer); tap = null; hideHeldInfo(); }
 function localPt(e) { const r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 function boardCellAt(x, y) {
   const c = Math.floor((x - L.bx) / L.cell), r = Math.floor((y - L.by) / L.cell);
@@ -4367,6 +4374,7 @@ canvas.addEventListener("pointerdown", (e) => {
   }
   if (tap || drag || phase !== "input") return;
   tap = { x: p.x, y: p.y, id: e.pointerId, held:false };
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* 未対応 */ }
   const heldTap = tap;
   tap.timer = setTimeout(() => {
     if (tap !== heldTap || phase !== "input" || clock.paused) return;
@@ -4394,6 +4402,7 @@ function endPointer(e) {
 }
 canvas.addEventListener("pointerup", endPointer);
 canvas.addEventListener("pointercancel", endPointer);
+window.addEventListener("blur",cancelTap);
 
 function stepDrag() {
   const cell = L.cell;
@@ -4576,13 +4585,13 @@ function perkText(k) {
   if (k.art) parts.push("奥義の威力 ×" + k.art);
   return parts.join("・");
 }
-function growthHtml(ch, lv, compact = false) {
+function growthHtml(ch, lv, compact = false, artsOnly = false) {
   const items = [
-    ...CONFIG.ARTS.map((a) => ({ lv: a.lv, html: '<strong>' + a.label + '「' + artName(ch, a.tier) + '」</strong><small>' + a.chain + '連鎖で発動' + (a.all ? '・敵全体' : '') + '</small>' })),
+    ...CONFIG.ARTS.map((a) => ({ art: true, lv: a.lv, html: '<strong>' + a.label + '「' + artName(ch, a.tier) + '」</strong><small>' + a.chain + '連鎖で発動' + (a.all ? '・敵全体' : '') + '</small>' })),
     ...CONFIG.LV_PERKS.map((k) => ({ lv: k.lv, html: '<strong>' + perkText(k) + '</strong>' })),
   ].sort((a, b) => a.lv - b.lv);
   const nextLv = CONFIG.ARTS.find(a => a.lv > lv)?.lv;
-  const visible = compact ? items.filter(it => it.lv <= lv || it.lv === nextLv) : items;
+  const visible = items.filter(it => (!artsOnly || it.art) && (!compact || it.lv <= lv || it.lv === nextLv));
   return '<ul class="growth">' + visible.map((it) => '<li class="' + (lv >= it.lv ? 'got' : '') + '"><span class="g-lv">Lv' + it.lv + '</span><span>' + it.html + '</span><span class="g-state">' + (lv >= it.lv ? '習得' : '未習得') + '</span></li>').join("") + '</ul>';
 }
 // そのレベルで覚えたもの（結果画面のお知らせ用）。なければ空
@@ -5059,7 +5068,14 @@ function showHeldInfo(x,y) {
   for(let i=0;i<state.party.length;i++) {
     const p=L.icons[i],m=state.party[i];
     if(Math.abs(x-p.x)<L.icon/2+4 && Math.abs(y-p.y)<L.icon/2+4) {
-      openModal(m.name,"<p>"+m.skill.name+"："+m.skill.desc+"</p><p>あと "+m.cd+" ターン</p><p>リーダー："+m.leader.name+"<br>"+m.leader.desc+"</p>",[{label:"閉じる",primary:true}]);return true;
+      const panel=$("heldInfo");
+      panel.innerHTML='<h3>'+m.name+' ／ Lv'+(m.lv||1)+'</h3><p><strong>'+m.skill.name+'</strong>（溜め '+m.skill.turns+'ターン・あと '+m.cd+'ターン）</p><p>'+m.skill.desc+'</p><p>リーダー：'+m.leader.name+'</p><p><strong>習得済みと次に覚える連鎖技</strong></p>'+growthHtml(m,m.lv||1,true,true);
+      panel.style.width=Math.min(340,L.W-24)+"px";panel.style.maxHeight=(L.H-24)+"px";
+      panel.classList.remove("hidden");
+      const box=panel.getBoundingClientRect();
+      panel.style.left=clamp(p.x-box.width/2,12,L.W-box.width-12)+"px";
+      panel.style.top=clamp(L.iconY-box.height-10,12,L.H-box.height-12)+"px";
+      return true;
     }
   }
   for(const e of state.enemies) {
