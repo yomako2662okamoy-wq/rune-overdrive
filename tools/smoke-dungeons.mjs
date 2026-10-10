@@ -30,12 +30,19 @@ export async function smokeDungeons(browser,url,root,errors) {
     }
   };
   async function playToClear() {
-    const floors=new Set(),forms=new Set();
+    const floors=new Set(),forms=new Set(),bossForms=new Set();
     for(let turn=0;turn<80;turn++) {
       const before=await page.evaluate(()=>({phase:RUNE_DEBUG.phase,floor:RUNE_DEBUG.state.floor,form:RUNE_DEBUG.state.enemies[0]?.form||1}));
       if(await page.locator('#result').isVisible())break;
       assert.equal(before.phase,'input');
       floors.add(before.floor);forms.add(before.form);
+      if(await page.evaluate(()=>RUNE_DEBUG.state.dungeon.id==='d8'&&RUNE_DEBUG.state.enemies[0]?.boss)) {
+        bossForms.add(before.form);
+        const display=await page.evaluate(()=>{const e=RUNE_DEBUG.state.enemies[0];return {hp:e.hp,maxHp:e.maxHp,base:e.baseMaxHp,viewHp:e.v.hp,viewMax:e.v.maxHp,form:e.v.form};});
+        assert.equal(display.base,324000);assert.equal(display.maxHp,before.form===1?162000:81000);
+        assert.equal(display.viewMax,display.maxHp);assert.equal(display.viewHp,display.hp);assert.equal(display.form,before.form);
+        await shots('d8-form-'+before.form);
+      }
       const healing=await page.evaluate(()=>{
         const d=RUNE_DEBUG,m=d.state.party.findIndex(m=>m.id==='ruka');
         return d.state.teamHp<d.state.teamMax*.65 && m>=0 && d.state.party[m].cd===0 ? d.visuals.layout.icons[m]:null;
@@ -55,9 +62,22 @@ export async function smokeDungeons(browser,url,root,errors) {
           c:before[r][c].c===6?6:color,p:before[r][c].c===6?false:d.state.od.active,...d.logic.runeFlags(before[r][c])
         }))));
         d.setSeed(799+turn);
+        if(d.state.dungeon.id==='d8'&&boss) {
+          window.d8Expected=d.logic.resolveTurn(d.snapshot(),{},d.logic.makeRngs(799+turn));
+          window.d8ExpBefore=d.state.earnedExp;
+        } else window.d8Expected=null;
         const last=d.state.stats.turns;d.resolve();return last;
       },turn);
       await page.waitForFunction(last=>RUNE_DEBUG.state.stats.turns>last&&(RUNE_DEBUG.phase==='input'||RUNE_DEBUG.scene==='result'),last,{timeout:30000});
+      const check=await page.evaluate(()=>{if(!window.d8Expected)return null;const d=RUNE_DEBUG,e=d.state.enemies[0],x=window.d8Expected;return {hp:e.hp,maxHp:e.maxHp,form:e.form,viewHp:e.v.hp,viewMax:e.v.maxHp,viewForm:e.v.form,earned:d.state.earnedExp,expBefore:window.d8ExpBefore,expDiv:d.config.EXP_DIV,expected:x.next.enemies[0],expectedExp:x.next.earnedExp,hits:x.events.filter(e=>e.t==='art'||e.t==='attack').flatMap(e=>e.hits),transforms:x.events.filter(e=>e.id==='transform')};});
+      if(check) {
+        assert.equal(check.hp,check.expected.hp);assert.equal(check.earned,check.expectedExp);
+        assert.equal(check.viewHp,check.hp);assert.equal(check.viewMax,check.maxHp);assert.equal(check.viewForm,check.form);
+        if(check.transforms.length) {
+          assert.equal(check.transforms.length,1);assert.equal(check.hp,check.maxHp,'次の形態でHPバー満タン');
+          assert.equal(check.earned,check.expBefore,'形態変化では経験値なし');assert(check.hits.every(hit=>!hit.killed&&hit.hp>=1),'連鎖技と後続攻撃で途中の形態を倒し切らない');
+        } else if(check.hp===0)assert.equal(check.earned-check.expBefore,324000/check.expDiv,'最後だけ3本合計の経験値');
+      }
     }
     assert.equal(await page.locator('#resTitle').textContent(),'CLEAR!','HPを変更せず新ダンジョンを最後まで通す');
     if(await page.locator('#skipRewardsBtn').isVisible())await page.locator('#skipRewardsBtn').click();
@@ -67,6 +87,7 @@ export async function smokeDungeons(browser,url,root,errors) {
     assert.equal(floors.size,result.floors,'全フロアを通る');
     assert.deepEqual(result.record.stars,[true,true,true]);
     assert.equal(await page.locator('.star-card.earned').count(),3);
+    if(result.id==='d8')assert.deepEqual([...bossForms],[1,2,3],'実データで全3形態を順に戦う');
     return {...result,forms:[...forms]};
   }
   try {

@@ -548,7 +548,7 @@ DUNGEONS.push(
     [{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"comboAbsorb","when":"preempt","min":7}]},{"kind":"sentinel","attr":1,"name":"蒼センチネル","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":1}]}],
     [{"kind":"golem","attr":4,"name":"冥ゴーレム","hp":43200,"def":650,"atk":2376,"turn":3,"boss":false,"skills":[{"id":"endure","when":"preempt"},{"id":"attrChange","when":"every:3"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"poison","when":"preempt"}]}],
     [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":23400,"def":350,"atk":1656,"turn":2,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":40000}]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":22500,"def":350,"atk":1620,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":23400,"def":350,"atk":1656,"turn":2,"boss":false,"skills":[{"id":"lock","when":"turn:2"}]}],
-    [{"kind":"boss","attr":4,"name":"終焉の王オブシディアン","hp":216000,"def":650,"atk":2520,"turn":1,"boss":true,"skills":[{"id":"endure","when":"preempt"},{"id":"transform","when":"hp:50","to":{"form":2,"phaseName":"オブシディアン・深淵","attr":4,"atk":2808,"turn":1,"bigEvery":3,"bigMult":1.8,"bigName":"崩壊の烈火"}},{"id":"transform","when":"hp:25","phase":2,"to":{"form":3,"phaseName":"終焉神オブシディアン","attr":4,"atk":3024,"turn":1,"bigEvery":2,"bigMult":1.8,"bigName":"終焉の深淵"}},{"id":"lock","when":"every:3","phase":1},{"id":"dark","when":"every:3","phase":2},{"id":"poison","when":"every:4","phase":2},{"id":"comboAbsorb","when":"every:4","phase":3,"min":8},{"id":"absorb","when":"every:5","phase":3,"attr":4},{"id":"attrChange","when":"every:2","phase":3}],"autoEnrage":false,"bigName":"終焉の審判","variant":1,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"boss","attr":4,"name":"終焉の王オブシディアン","hp":216000,"hpRate":0.5,"def":650,"atk":2520,"turn":1,"boss":true,"skills":[{"id":"endure","when":"preempt"},{"id":"transform","when":"depleted","phase":1,"to":{"hpRate":0.25,"form":2,"phaseName":"オブシディアン・深淵","attr":4,"atk":2808,"turn":1,"bigEvery":3,"bigMult":1.8,"bigName":"崩壊の烈火"}},{"id":"transform","when":"depleted","phase":2,"to":{"hpRate":0.25,"form":3,"phaseName":"終焉神オブシディアン","attr":4,"atk":3024,"turn":1,"bigEvery":2,"bigMult":1.8,"bigName":"終焉の深淵"}},{"id":"lock","when":"every:3","phase":1},{"id":"dark","when":"every:3","phase":2},{"id":"poison","when":"every:4","phase":2},{"id":"comboAbsorb","when":"every:4","phase":3,"min":8},{"id":"absorb","when":"every:5","phase":3,"attr":4},{"id":"attrChange","when":"every:2","phase":3}],"autoEnrage":false,"bigName":"終焉の審判","variant":1,"bigEvery":3,"bigMult":1.8}]
   ]}
 );
 DUNGEONS.forEach((d,i)=>{d.recommendedLv=CONFIG.DUNGEON_LEVELS[i];d.starGoals=CONFIG.STAR_GOALS[i];});
@@ -783,6 +783,7 @@ function skillDue(enemy,skill,index,phase) {
   const [kind,value] = when.split(":"), n = Number(value);
   if (kind === "every") return n > 0 && enemy.elapsed % n === 0;
   if (enemy.skillUsed?.[index]) return false;
+  if (skill.id === "transform") return !!enemy.formExhausted;
   if (kind === "turn") return enemy.elapsed === n;
   if (kind === "hp") return (enemy.hpBeforeRegen ?? enemy.hp) < enemy.maxHp * n / 100;
   return false;
@@ -823,6 +824,10 @@ function useEnemySkill(game,index,skill,random,rules,events) {
     enemy.statuses.regen={rate:rules.ENEMY_REGEN_RATE,turns:skill.turns ?? null};added="regen";
   } else if (skill.id === "transform") {
     const to=skill.to || {};
+    enemy.baseMaxHp ??= enemy.maxHp;
+    enemy.maxHp = Math.max(1,Math.round(enemy.baseMaxHp * (to.hpRate ?? 1)));
+    enemy.hp = enemy.maxHp;
+    delete enemy.formExhausted;
     enemy.form=to.form ?? (enemy.form || 1)+1;
     for(const key of ["attr","atk","turn","bigName","bigEvery","bigMult","phaseName"])if(to[key] !== undefined)enemy[key]=to[key];
   } else if (skill.id === "attrChange") {
@@ -830,7 +835,8 @@ function useEnemySkill(game,index,skill,random,rules,events) {
     enemy.attr=attrs[(attrs.indexOf(enemy.attr)+1)%attrs.length];
   } else return;
   events.push({t:"enemySkill",e:index,id:skill.id,name:skill.name || ENEMY_SKILL_NAMES[skill.id],cells,
-    board:cloneBoard(game.board),attr:enemy.attr,form:enemy.form || 1,cd:enemy.cd,phaseName:enemy.phaseName || ""});
+    board:cloneBoard(game.board),attr:enemy.attr,form:enemy.form || 1,cd:enemy.cd,phaseName:enemy.phaseName || "",
+    ...(skill.id === "transform" ? {hp:enemy.hp,maxHp:enemy.maxHp} : {})});
   if(added)events.push({t:"status",e:index,added,statuses:cloneData(enemy.statuses)});
 }
 function triggerEnemySkills(game,phase,random,rules,events) {
@@ -840,10 +846,13 @@ function triggerEnemySkills(game,phase,random,rules,events) {
     enemy.skillUsed ||= {};
     enemy.elapsed ||= 0;
     if (phase === "end") enemy.elapsed++;
+    let transformed = false;
     for(const [i,skill] of enemy.skills.entries()) {
+      if (skill.id === "transform" && transformed) continue;
       if (!skillDue(enemy,skill,i,phase)) continue;
       enemy.skillUsed[i] = true;
       useEnemySkill(game,index,skill,random,rules,events);
+      if (skill.id === "transform") transformed = true;
       if(phase === "preempt")break;
     }
     if(phase === "preempt")enemy.preemptDone=true;
@@ -874,6 +883,9 @@ function ageEnemyConditions(game,events) {
     events.push({t:"status",e:index,removed,statuses:cloneData(enemy.statuses)});
   });
 }
+function hasRemainingTransform(enemy) {
+  return !!enemy.skills?.some((skill,index) => skill.id === "transform" && !enemy.skillUsed?.[index]);
+}
 function hitEnemy(enemy,damage,context,rules = CONFIG) {
   const next = cloneData(enemy),statuses=next.statuses || {};
   const capped = !!statuses.damageCap && damage > statuses.damageCap.limit;
@@ -884,9 +896,15 @@ function hitEnemy(enemy,damage,context,rules = CONFIG) {
     const amount=Math.min(next.maxHp-next.hp,damage);next.hp+=amount;
     return {enemy:next,hit:{dmg:0,hp:next.hp,killed:false,absorbed:true,amount}};
   }
+  const formGuard = hasRemainingTransform(next) && damage >= next.hp && next.hp > 0;
+  if (formGuard) next.formExhausted = true;
   if(statuses.endure && !next.endureUsed && next.hp >= next.maxHp * statuses.endure.from && damage >= next.hp) {
     const dmg=next.hp-1;next.hp=1;next.endureUsed=true;statuses.endure.used=true;
     return {enemy:next,hit:{dmg,hp:1,killed:false,endured:true}};
+  }
+  if (formGuard) {
+    const dmg = next.hp-1; next.hp=1;
+    return {enemy:next,hit:{dmg,hp:1,killed:false,formGuard:true,...(capped?{capped:true}:{})}};
   }
   next.hp = Math.max(0,next.hp-damage);
   return {enemy:next,hit:{dmg:damage,hp:next.hp,killed:next.hp === 0,...(capped?{capped:true}:{})}};
@@ -1019,7 +1037,7 @@ function resolveTurn(game, input = {}, random) {
       const dmg = Math.floor(attackDamage(mem, gs, { combos, leaderMult: multiplier, od: odWas, resonance: res, prism }, e, rules) * art.mult);
       const applied = hitEnemy(e, dmg, { attr: mem.attr, combos }, rules);
       Object.assign(e, applied.enemy);
-      if (e.hp === 0) next.earnedExp = (next.earnedExp || 0) + Math.floor(e.maxHp / rules.EXP_DIV);
+      if (e.hp === 0) next.earnedExp = (next.earnedExp || 0) + Math.floor((e.baseMaxHp ?? e.maxHp) / rules.EXP_DIV);
       next.stats.totalDmg += applied.hit.dmg;
       hits.push({ e: j, ...applied.hit, weak: am > 1, resist: am < 1 });
     }
@@ -1048,7 +1066,7 @@ function resolveTurn(game, input = {}, random) {
       const dmg = attackDamage(mem, gs, { combos, leaderMult: multiplier, od: odWas, resonance: res, prism }, e, rules);
       const applied = hitEnemy(e,dmg,{attr:mem.attr,combos},rules);
       Object.assign(e,applied.enemy);
-      if (e.hp === 0) next.earnedExp = (next.earnedExp || 0) + Math.floor(e.maxHp / rules.EXP_DIV);
+      if (e.hp === 0) next.earnedExp = (next.earnedExp || 0) + Math.floor((e.baseMaxHp ?? e.maxHp) / rules.EXP_DIV);
       next.stats.totalDmg += applied.hit.dmg;
       hits.push({e:j,...applied.hit,weak:am>1,resist:am<1});
     }
@@ -1112,8 +1130,9 @@ function resolveTurn(game, input = {}, random) {
 
 function makeEnemies(specs, hpScale) {
   return specs.map((spec) => {
-    const data = cloneData(spec), hp = Math.round(data.hp * hpScale);
-    return { ...data, hp, maxHp: hp, cd: data.turn, acts: 0, enraged: false };
+    const data = cloneData(spec), baseMaxHp = Math.round(data.hp * hpScale);
+    const hp = Math.max(1,Math.round(baseMaxHp * (data.hpRate ?? 1)));
+    return { ...data, hp, maxHp: hp, ...(data.hpRate !== undefined ? {baseMaxHp} : {}), cd: data.turn, acts: 0, enraged: false };
   });
 }
 function leaderStats(leader, rules = CONFIG) {
@@ -1845,6 +1864,8 @@ async function fxEnemySkill(e) {
   if (e.attr !== v.attr || formChanged) {v.attr=e.attr;buildEnemySprites();}
   v.phaseName=e.phaseName;v.cd=e.cd;
   if (e.id === "transform") {
+    v.maxHp = e.maxHp; v.ghost = v.hp; v.crack = 0;
+    tween(v,"hp",e.hp,duration);
     ov.hazard={kind:"crack",t0:clock.game,dur:duration,e:e.e};
     hitstop(CONFIG.HITSTOP); Sound.sfx.enrage();shake(5);
     spawnParticles(v.x,v.y,v.attr,24,{shard:.5});
@@ -2481,7 +2502,7 @@ function makeCracks(kind) {
 function updateCracks(en) {
   const v = en.v;
   if (!v.cracks) return;
-  const stage = CONFIG.CRACK_STEPS.filter((step) => v.hp / en.maxHp < step).length, prev = v.crack || 0;
+  const stage = CONFIG.CRACK_STEPS.filter((step) => v.hp / (v.maxHp ?? en.maxHp) < step).length, prev = v.crack || 0;
   if (stage <= prev) return;
   v.crack = stage;
   Sound.sfx.crack(false);
@@ -3482,22 +3503,28 @@ function drawEnemyStatuses(enemy,x,y,width) {
 }
 function quietControls() { return !settings.shake || settings.flash || reducedMotion(); }
 function targetIndicatorRotation() { return quietControls() ? 0 : clock.real * 1.5; }
+function enemyFormLabel(e) {
+  const count = 1 + (e.skills || []).filter(skill => skill.id === "transform").length;
+  return count > 1 ? (e.v?.form || e.form || 1) + "/" + count : "";
+}
 function drawEnemyHud(e, i) {
   if(tap && enemyHit(e,tap.x,tap.y)) {const v=e.v;ctx.fillStyle="rgba(0,0,0,.12)";chamferRect(ctx,v.x-v.size*.45,v.y-v.size*.5,v.size*.9,v.size,6);ctx.fill();}
-  const v = e.v, cell = L.cell, R = RUNES[v.attr ?? e.attr];
+  const v = e.v, cell = L.cell, R = RUNES[v.attr ?? e.attr], maxHp = v.maxHp ?? e.maxHp;
   const bw = Math.max(72, v.size * 0.78), bh = Math.max(5, cell * 0.09);
   const bx = v.x - bw / 2, by = v.y + v.size * 0.46 + 9;
   ctx.fillStyle = "rgba(4,3,10,0.9)"; chamferRect(ctx, bx - 2.5, by - 2.5, bw + 5, bh + 5, bh * 0.9); ctx.fill();
   ctx.strokeStyle = rgba(R.light, 0.45); ctx.lineWidth = 1; ctx.stroke();
-  if (v.ghost > v.hp) { ctx.fillStyle = "rgba(255,255,255,0.6)"; chamferRect(ctx, bx, by, (bw * v.ghost) / e.maxHp, bh, bh * 0.5); ctx.fill(); }
+  if (v.ghost > v.hp) { ctx.fillStyle = "rgba(255,255,255,0.6)"; chamferRect(ctx, bx, by, (bw * v.ghost) / maxHp, bh, bh * 0.5); ctx.fill(); }
   if (v.hp > 0) {
     const g = paint("hp"+(v.attr??e.attr),0,by,0,by+bh);
-    ctx.fillStyle = g; chamferRect(ctx, bx, by, Math.max(bh, (bw * v.hp) / e.maxHp), bh, bh * 0.5); ctx.fill();
+    ctx.fillStyle = g; chamferRect(ctx, bx, by, Math.max(bh, (bw * v.hp) / maxHp), bh, bh * 0.5); ctx.fill();
   }
   const gs = bh * 3.4;
   ctx.drawImage(runeSpr[v.attr ?? e.attr], bx - gs - 3, by + bh / 2 - gs / 2, gs, gs);
   label(v.phaseName || e.name, v.x, by + bh + clamp(cell * 0.2, 9, 13), Math.max(12, cell * 0.18), "rgba(241,238,255,0.82)");
-  if (settings.hpNumbers) label(fmt(Math.ceil(v.hp))+" / "+fmt(e.maxHp),v.x,by-11,12,"#FFF");
+  if (settings.hpNumbers) label(fmt(Math.ceil(v.hp))+" / "+fmt(maxHp),v.x,by-11,12,"#FFF");
+  const formLabel = enemyFormLabel(e);
+  if (formLabel) label(formLabel,bx+bw+7,by+bh/2,12,"#FFE3A0","left");
   const weak = ADVANTAGE.findIndex(attr => attr === (v.attr ?? e.attr));
   const wx = bx + bw - 18, wy = by - (settings.hpNumbers ? 30 : 14);
   label("弱点",wx-12,wy,12,"#FFE3A0","right");
@@ -4519,7 +4546,7 @@ function startInput() {
   phase = "input";
 }
 function newEnemyView(data) {
-  return { attr:data.attr, form:data.form || 1, statuses:cloneData(data.statuses || {}), phaseName:data.phaseName || "", hp: data.hp, ghost: data.hp, ghostT: 0, cd: data.cd, x: 0, y: 0, size: 0, flash: 0, kx: 0, alpha: 0, scale: 0.7, dying: false, dead: false, spr: null, silSpr: null,
+  return { attr:data.attr, form:data.form || 1, statuses:cloneData(data.statuses || {}), phaseName:data.phaseName || "", hp: data.hp, ...(data.skills?.some(skill=>skill.id==="transform") ? {maxHp:data.maxHp} : {}), ghost: data.hp, ghostT: 0, cd: data.cd, x: 0, y: 0, size: 0, flash: 0, kx: 0, alpha: 0, scale: 0.7, dying: false, dead: false, spr: null, silSpr: null,
     tilt: 0, lift: 0, sx: 1, sqx: 1, sqy: 1, charge: 0, split: 0, ascend: 0, quake: 0, weakFlash: 0, crack: 0, cracks: makeCracks(data.kind) };
 }
 async function startFloor() {
@@ -5115,7 +5142,7 @@ function showHeldInfo(x,y) {
     if(e.hp<=0)continue;
     const v=e.v;
     if(enemyHit(e,x,y,true)) {
-      const when=t=>t==="preempt"?"登場時":t.startsWith("every:")?t.slice(6)+"ターンごと":t.startsWith("turn:")?t.slice(5)+"ターン目":t.startsWith("hp:")?"HP"+t.slice(3)+"%未満":t;
+      const when=t=>t==="depleted"?"その形態のHPが尽きたとき":t==="preempt"?"登場時":t.startsWith("every:")?t.slice(6)+"ターンごと":t.startsWith("turn:")?t.slice(5)+"ターン目":t.startsWith("hp:")?"HP"+t.slice(3)+"%未満":t;
       openModal(v.phaseName||e.name,"<p>HP "+fmt(e.hp)+" / "+fmt(e.maxHp)+"</p><p>攻撃 "+fmt(e.atk)+" ／ "+e.turn+"ターンごと（あと "+e.cd+"）</p><p>"+(e.skills||[]).map(s=>ENEMY_SKILL_NAMES[s.id]+"："+when(s.when)+(s.phase?"（形態"+s.phase+"）":"")).join("<br>")+"</p>"+(e.boss?"<p>大技："+e.bigName+" ／ "+(e.bigEvery||CONFIG.BOSS_BIG_EVERY)+"回ごと</p>":""),[{label:"閉じる",primary:true}]);return true;
     }
   }
@@ -5391,7 +5418,7 @@ function updateWorld(dt, dtReal) {
     const v = e.v;
     v.flash = Math.max(0, v.flash - dt * 5);
     v.weakFlash = Math.max(0, (v.weakFlash || 0) - dt * 9);
-    if (clock.game > v.ghostT && v.ghost > v.hp) v.ghost = Math.max(v.hp, v.ghost - e.maxHp * dt * 0.9);
+    if (clock.game > v.ghostT && v.ghost > v.hp) v.ghost = Math.max(v.hp, v.ghost - (v.maxHp ?? e.maxHp) * dt * 0.9);
     if (v.ghost < v.hp) v.ghost = v.hp;
   }
   if (state.teamMax) {

@@ -398,7 +398,7 @@ try {
     {id:'lock',when:'turn:1'}, {id:'poison',when:'turn:1'}, {id:'dark',when:'turn:1'},
     {id:'absorb',when:'turn:1',attr:0}, {id:'comboAbsorb',when:'turn:1',min:7},
     {id:'damageCap',when:'turn:1',limit:1000}, {id:'endure',when:'turn:1'}, {id:'regen',when:'turn:1'},
-    {id:'transform',when:'hp:50',to:{attr:0,atk:0,turn:99,phaseName:'第二形態',form:2}},
+    {id:'transform',when:'depleted',to:{hpRate:.25,attr:0,atk:0,turn:99,phaseName:'第二形態',form:2}},
     {id:'attrChange',when:'every:3'}
   ]) {
     const turn=await cPage.evaluate(skill=>{
@@ -406,7 +406,8 @@ try {
       d.setBoard(base);d.state.teamHp=d.state.teamMax;
       d.state.enemies[0]={kind:old.kind,name:'検証用の敵',attr:2,hp:490000,maxHp:1000000,atk:0,def:0,
         turn:99,cd:99,acts:0,boss:false,enraged:false,elapsed:skill.id==='attrChange'?2:0,skills:[skill],v:old.v};
-      Object.assign(old.v,{hp:490000,ghost:490000,dead:false,dying:false,alpha:1,statuses:{},attr:2,phaseName:''});
+      if(skill.id==='transform')Object.assign(d.state.enemies[0],d.logic.hitEnemy(d.state.enemies[0],999999,{attr:0,combos:10}).enemy);
+      Object.assign(old.v,{hp:d.state.enemies[0].hp,maxHp:1000000,ghost:d.state.enemies[0].hp,form:1,dead:false,dying:false,alpha:1,statuses:{},attr:2,phaseName:''});
       d.state.enemies.slice(1).forEach(e=>{e.hp=0;e.v.dead=true;});
       d.setSeed(77);
       window.enemyExpected=d.logic.resolveTurn(d.snapshot(),{},d.logic.makeRngs(77));
@@ -445,7 +446,7 @@ try {
       };
       e.hp=kind==='endure'?1000:500000;e.maxHp=kind==='endure'?1000:1000000;e.skills=[];e.statuses=statuses[kind];
       e.endureUsed=false;e.cd=99;e.atk=0;
-      e.v.hp=e.hp;e.v.ghost=e.hp;e.v.statuses=d.logic.cloneData(e.statuses);e.v.dead=false;e.v.dying=false;
+      e.v.hp=e.hp;e.v.maxHp=e.maxHp;e.v.ghost=e.hp;e.v.statuses=d.logic.cloneData(e.statuses);e.v.dead=false;e.v.dying=false;
       // 根性の後続攻撃で即死しないよう、このケースでは1体だけが攻撃する盤面。
       const base=d.logic.makeBoard(false,d.logic.mulberry32(5));
       if(kind==='endure')for(let c=0;c<3;c++)base[0][c]={c:d.state.party[0].attr,p:false};
