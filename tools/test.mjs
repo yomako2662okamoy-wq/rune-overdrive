@@ -883,3 +883,20 @@ test('長押しの連鎖技一覧は習得済みと次の技を共有の名前�
  for(const word of ['攻撃 +','スキルの溜め','Lv35','紅蓮天墜'])assert(!panel.includes(word),word);
  assert(vm.runInContext('growthHtml(CHARS[0],20)',context).includes('攻撃 +10%'),'既存の詳細は能力アップも保つ');
 });
+
+
+test('Space・P／Esc・Sは戦闘だけに作用し、入力中・修飾キー・繰返しでは何もしない',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function typingTarget('),html.indexOf('document.addEventListener("keydown",handleControlKey)'));
+ const calls={forward:0,pause:0,speed:0,resume:0};let title='一時停止';
+ const context=vm.createContext({document:{activeElement:null},scene:'battle',phase:'resolve',clock:{paused:false},modal:{classList:{contains:()=>true}},fastForwardTurn:()=>calls.forward++,openPause:()=>calls.pause++,cycleSpeed:()=>calls.speed++,$:id=>id==='modalTitle'?{textContent:title}:{querySelector:()=>({click:()=>calls.resume++})}});
+ vm.runInContext(source,context);
+ let prevented=0;context.event={key:' ',code:'Space',preventDefault:()=>prevented++};vm.runInContext('handleControlKey(event)',context);assert.equal(calls.forward,1);assert.equal(prevented,1);
+ for(const key of ['p','Escape','s']){context.event.key=key;context.event.code='';vm.runInContext('handleControlKey(event)',context);}assert.equal(calls.pause,2);assert.equal(calls.speed,1);
+ context.clock.paused=true;context.event.key='Escape';vm.runInContext('handleControlKey(event)',context);assert.equal(calls.resume,1);
+ const before={...calls};
+ for(const el of [{tagName:'INPUT'},{tagName:'TEXTAREA'},{tagName:'SELECT'},{tagName:'DIV',isContentEditable:true}]){context.document.activeElement=el;for(const key of [' ','p','Escape','s']){context.event.key=key;vm.runInContext('handleControlKey(event)',context);}}
+ context.document.activeElement=null;
+ for(const flag of ['repeat','ctrlKey','metaKey','altKey']){context.event[flag]=true;vm.runInContext('handleControlKey(event)',context);context.event[flag]=false;}
+ context.scene='home';vm.runInContext('handleControlKey(event)',context);assert.deepEqual(calls,before);
+});
