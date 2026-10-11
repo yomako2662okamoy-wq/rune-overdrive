@@ -34,7 +34,10 @@ export async function smokeControls(browser,url,root,errors){
   await page.mouse.move(rect.x+rect.width/2,rect.y+rect.height/2);await page.mouse.down();
   assert.notEqual(await btn.evaluate(el=>getComputedStyle(el).transform),'none');
   assert.notEqual(await btn.evaluate(el=>getComputedStyle(el).boxShadow),'none');
-  await page.emulateMedia({reducedMotion:'reduce'});assert.equal(await btn.evaluate(el=>getComputedStyle(el).transform),'none');
+  await page.emulateMedia({reducedMotion:'reduce'});
+  // matchMediaのchange通知は非同期。ゲームの既存リスナーが反映するまで待ち、同じ厳密な表示条件を検査する。
+  await page.waitForFunction(()=>matchMedia('(prefers-reduced-motion: reduce)').matches && document.documentElement.dataset.quietUi==='true',null,{timeout:2000});
+  assert.equal(await btn.evaluate(el=>getComputedStyle(el).transform),'none');
   await page.mouse.up();await page.emulateMedia({reducedMotion:'no-preference'});
   for(const viewport of [{width:390,height:844},{width:375,height:667}]){
    await page.setViewportSize(viewport);await scanTargets('ホーム');
