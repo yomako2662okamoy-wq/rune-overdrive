@@ -25,6 +25,14 @@ export async function smokeControls(browser,url,root,errors){
  const resetBoard=async()=>page.evaluate(()=>{
   const d=RUNE_DEBUG;d.cancelInput();d.setBoard(Array.from({length:6},(_,r)=>Array.from({length:7},(_,c)=>(r*2+c)%6)));return d.visuals.layout;
  });
+ // resizeとResizeObserverの反映後に座標を読む。時間を延ばすだけでは古い位置で押したままになる。
+ const settleViewport=async viewport=>{
+  await page.setViewportSize(viewport);
+  await page.waitForFunction(({width,height})=>{
+   const l=RUNE_DEBUG.visuals.layout,r=document.querySelector('#game').getBoundingClientRect();
+   return innerWidth===width && innerHeight===height && Math.abs(l.W-r.width)<.01 && Math.abs(l.H-r.height)<.01;
+  },viewport,{timeout:2000});
+ };
  const cancelDrag=async()=>{await page.evaluate(()=>RUNE_DEBUG.cancelInput());await page.mouse.up();};
  try{
   await page.goto(url+'/?debug=1');await page.waitForFunction(()=>window.RUNE_DEBUG?.assets.done);
@@ -40,14 +48,14 @@ export async function smokeControls(browser,url,root,errors){
   assert.equal(await btn.evaluate(el=>getComputedStyle(el).transform),'none');
   await page.mouse.up();await page.emulateMedia({reducedMotion:'no-preference'});
   for(const viewport of [{width:390,height:844},{width:375,height:667}]){
-   await page.setViewportSize(viewport);await scanTargets('ホーム');
+   await settleViewport(viewport);await scanTargets('ホーム');
    await page.locator('#homeTeamBtn').click();await scanTargets('編成');
    await page.locator('#teamDetailBtn').click();await scanTargets('詳細');
    await page.locator('#detailBackBtn').click();await page.locator('#teamHomeBtn').click();
    await page.locator('#homeAdventureBtn').click();await scanTargets('冒険');
    await page.locator('#selectHomeBtn').click();
   }
-  await page.setViewportSize({width:390,height:844});
+  await settleViewport({width:390,height:844});
   await page.locator('#homeAdventureBtn').click();await page.locator('#dungeonList .dcard').first().click();
   await page.waitForFunction(()=>RUNE_DEBUG.phase==='input');
   await page.evaluate(()=>RUNE_DEBUG.state.enemies.forEach(e=>{e.hp=e.maxHp=1e8;e.atk=0;e.cd=e.turn=99;e.v.hp=e.v.ghost=e.hp;}));
@@ -82,11 +90,11 @@ export async function smokeControls(browser,url,root,errors){
   for(const text of ['紅蓮変換','溜め 5ターン','あと 0ターン','紅閃','紅蓮斬','緋焔乱舞','Lv25','7連鎖で発動'])assert(info.includes(text),text);
   assert(!info.includes('紅蓮天墜'));assert.equal(await page.locator('#modal').isVisible(),false);
   for(const viewport of [{width:390,height:844},{width:375,height:667}]){
-   await page.setViewportSize(viewport);await page.screenshot({path:resolve(root,'screenshots/usability-held-'+viewport.width+'x'+viewport.height+'.png')});
+   await settleViewport(viewport);await page.screenshot({path:resolve(root,'screenshots/usability-held-'+viewport.width+'x'+viewport.height+'.png')});
    const box=await page.locator('#heldInfo').boundingBox();assert(box.x>=0&&box.x+box.width<=viewport.width);assert(box.y>=0&&box.y+box.height<=viewport.height);
   }
   await page.mouse.up();assert.equal(await page.locator('#heldInfo').isVisible(),false);assert.equal(await page.evaluate(()=>RUNE_DEBUG.state.party[0].cd),0);
-  await page.setViewportSize({width:390,height:844});l=await page.evaluate(()=>RUNE_DEBUG.visuals.layout);
+  await settleViewport({width:390,height:844});l=await page.evaluate(()=>RUNE_DEBUG.visuals.layout);
   await page.mouse.move(l.icons[0].x,l.icons[0].y);await page.mouse.down();await page.waitForFunction(()=>!document.querySelector('#heldInfo').classList.contains('hidden'));
   await page.evaluate(()=>document.querySelector('#game').dispatchEvent(new PointerEvent('pointercancel',{pointerId:1})));await page.mouse.up();assert.equal(await page.locator('#heldInfo').isVisible(),false);
   await page.evaluate(()=>RUNE_DEBUG.settings.skillConfirm=true);await page.mouse.click(l.icons[0].x,l.icons[0].y);
@@ -136,7 +144,7 @@ export async function smokeControls(browser,url,root,errors){
    assert.notEqual(await page.locator('#speedBtn').evaluate(el=>getComputedStyle(el).boxShadow),'none');await page.mouse.up();
   }
   for(const viewport of [{width:390,height:844},{width:375,height:667}]){
-   await page.setViewportSize(viewport);l=await resetBoard();await page.evaluate(()=>RUNE_DEBUG.state.target=0);
+   await settleViewport(viewport);l=await resetBoard();await page.evaluate(()=>RUNE_DEBUG.state.target=0);
    assert(l.cell>=44);assert(l.icon+8>=44);
    await page.mouse.move(l.bx+1.5*l.cell,l.by+2.5*l.cell);await page.mouse.down();await page.mouse.move(l.bx+2.5*l.cell,l.by+2.5*l.cell);
    await page.screenshot({path:resolve(root,'screenshots/usability-drag-'+viewport.width+'x'+viewport.height+'.png')});await scanTargets('ドラッグ');await cancelDrag();

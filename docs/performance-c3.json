@@ -9,11 +9,11 @@
         "seed": 22,
         "combos": 20
       },
-      "seconds": 4.95210000000149,
-      "frames": 572,
+      "seconds": 4.98310000000149,
+      "frames": 567,
       "mainCanvasGradients": 0,
-      "cpuP95ms": 3.099999997764826,
-      "cpuMaxMs": 5.899999998509884,
+      "cpuP95ms": 3.5,
+      "cpuMaxMs": 7.5,
       "over16ms": 0
     },
     {
