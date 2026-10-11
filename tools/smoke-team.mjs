@@ -1,3 +1,4 @@
+import {smokeTeamMac} from './smoke-team-mac.mjs';
 import assert from 'node:assert/strict';
 import {resolve} from 'node:path';
 import {loadLogic,plain} from './load-logic.mjs';
@@ -13,7 +14,7 @@ export async function smokeTeam(browser,url,root,errors){
  page.on('console',m=>{if(m.type()==='error')errors.push('team panel: '+m.text());});
  await page.goto(url+'/?debug=1');
  await page.waitForFunction(()=>window.RUNE_DEBUG?.assets.done);
- await page.locator('#startBtn').click();await page.locator('#homeTeamBtn').click();
+ await page.locator('#startBtn').tap();await page.locator('#homeTeamBtn').tap();
  const saved=await page.evaluate(()=>RUNE_DEBUG.save);
  const panel=page.locator('#teamMemberPanel');
  const stats=async id=>{
@@ -27,22 +28,22 @@ export async function smokeTeam(browser,url,root,errors){
  assert((await panel.textContent()).includes('次に覚える技：Lv25 超必殺「緋焔乱舞」／7連鎖で発動'));
  assert((await panel.textContent()).includes('必殺技「紅蓮斬」'));
  assert.equal(await panel.locator('.growth .g-lv').allTextContents().then(lvs=>lvs.includes('Lv35')),false,'次より先の技は一覧に出さない');
- await page.locator('.slot[data-slot="1"]').click();await stats('mizuha');
- await page.locator('#teamContent .roster-card[data-id="crow"]').click();await stats('crow');
+ await page.locator('.slot[data-slot="1"]').tap();await stats('mizuha');
+ await page.locator('#teamContent .roster-card[data-id="crow"]').tap();await stats('crow');
  assert.equal(await page.locator('#equipMemberBtn').isDisabled(),true);
  assert((await panel.textContent()).includes('加入条件：ダンジョン6クリアで加入'));
  assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),saved,'未加入のプレビューで保存を変えない');
- await page.locator('#teamDetailBtn').click();assert.equal(await page.locator('#detail').isVisible(),true);
- await page.locator('#detailBackBtn').click();assert.equal(await page.locator('#team').isVisible(),true);
+ await page.locator('#teamDetailBtn').tap();assert.equal(await page.locator('#detail').isVisible(),true);
+ await page.locator('#detailBackBtn').tap();assert.equal(await page.locator('#team').isVisible(),true);
  assert.equal(await panel.getAttribute('data-id'),'crow');
  assert.equal(await page.locator('.slot[data-slot="1"]').getAttribute('aria-pressed'),'true');
- await page.locator('#teamContent .roster-card[data-id="akane"]').click();await stats('akane');
+ await page.locator('#teamContent .roster-card[data-id="akane"]').tap();await stats('akane');
  assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),saved,'加入済みの選択も編成を変えない');
- await page.locator('#equipMemberBtn').click();
+ await page.locator('#equipMemberBtn').tap();
  assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save.teams[0].members),['mizuha','akane','yomogi','ruka','nocto']);
  const equipped=await page.evaluate(()=>RUNE_DEBUG.save);
- await page.locator('.slot[data-slot="1"]').click();
- await page.locator('#teamDetailBtn').click();await page.locator('#detailBackBtn').click();
+ await page.locator('.slot[data-slot="1"]').tap();
+ await page.locator('#teamDetailBtn').tap();await page.locator('#detailBackBtn').tap();
  assert.equal(await panel.getAttribute('data-id'),'akane');
  for(const viewport of [{width:390,height:844},{width:375,height:667}]){
   await page.setViewportSize(viewport);await panel.scrollIntoViewIfNeeded();
@@ -52,25 +53,29 @@ export async function smokeTeam(browser,url,root,errors){
   await page.screenshot({path:resolve(root,'screenshots/visual-growth-team-'+viewport.width+'x'+viewport.height+'.png')});
   await panel.screenshot({path:resolve(root,'screenshots/visual-growth-panel-'+viewport.width+'x'+viewport.height+'.png')});
  }
- await page.reload();await page.locator('#startBtn').click();
+ await page.reload();await page.locator('#startBtn').tap();
  assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),equipped,'確定した編成は再読込後も保存される');
 
  // 既存のタップ検証に続けて実入力でドラッグを検証する。
- await page.locator('#homeTeamBtn').click();
+ await page.locator('#homeTeamBtn').tap();
  const members=()=>page.evaluate(()=>RUNE_DEBUG.save.teams[0].members);
  const band=page.locator('#teamDragBand'),ghost=page.locator('#teamDragGhost');
+ const cdp=await context.newCDPSession(page);
+ const touch=async(type,points)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:points.map(p=>({...p,id:1,radiusX:2,radiusY:2,force:1}))});
+ let touchPoint=null;
+ const moveTouch=async(x,y,steps=4)=>{const start=touchPoint||{x,y};for(let i=1;i<=steps;i++){await touch('touchMove',[{x:start.x+(x-start.x)*i/steps,y:start.y+(y-start.y)*i/steps}]);await page.waitForTimeout(20);}touchPoint={x,y};};
  const card=id=>'#teamContent .roster-card[data-id="'+id+'"]';
  const slot=n=>'#teamContent .slot[data-slot="'+n+'"]';
  const center=async selector=>{const b=await page.locator(selector).boundingBox();assert(b,selector);return {x:b.x+b.width/2,y:b.y+b.height/2};};
  async function beginDrag(selector){
   await page.locator(selector).scrollIntoViewIfNeeded();await page.waitForTimeout(90);
-  const p=await center(selector);await page.mouse.move(p.x,p.y);await page.mouse.down();
+  const p=await center(selector);touchPoint=p;await touch('touchStart',[p]);
   await page.waitForTimeout(100);assert.equal(await band.isVisible(),false,'0.25秒未満はつかまない');
   await band.waitFor({state:'visible',timeout:2000});assert.equal(await ghost.isVisible(),true);
   return p;
  }
- async function releaseAt(point){await page.mouse.move(point.x,point.y,{steps:4});await page.mouse.up();await band.waitFor({state:'hidden'});assert.equal(await ghost.isVisible(),false);}
- async function dropSlot(source,n){await beginDrag(source);const p=await center(slot(n));await page.mouse.move(p.x,p.y,{steps:4});assert.equal(await page.locator(slot(n)).evaluate(el=>el.classList.contains('drop-over')),true);await page.mouse.up();await band.waitFor({state:'hidden'});}
+ async function releaseAt(point){await moveTouch(point.x,point.y);await touch('touchEnd',[]);touchPoint=null;await band.waitFor({state:'hidden'});assert.equal(await ghost.isVisible(),false);}
+ async function dropSlot(source,n){await beginDrag(source);const p=await center(slot(n));await moveTouch(p.x,p.y);assert.equal(await page.locator(slot(n)).evaluate(el=>el.classList.contains('drop-over')),true);await touch('touchEnd',[]);touchPoint=null;await band.waitFor({state:'hidden'});}
  async function dropList(n){await beginDrag(slot(n));await page.locator(card('akane')).scrollIntoViewIfNeeded();const p=await center(card('akane'));await releaseAt(p);}
  const equippedBeforeDrag=await page.evaluate(()=>RUNE_DEBUG.save);
  await beginDrag(card('akane'));
@@ -93,19 +98,17 @@ export async function smokeTeam(browser,url,root,errors){
  assert((await page.locator('#toast').textContent()).includes('ダンジョン6クリアで加入'));
  await beginDrag(card('akane'));
  const bounds=await page.evaluate(()=>{const s=document.querySelector('#team .team-slots').getBoundingClientRect();return {top:s.bottom+9,bottom:innerHeight-12,width:innerWidth};});
- const beforeDown=await page.locator('#team').evaluate(el=>el.scrollTop);await page.mouse.move(bounds.width/2,bounds.bottom);await page.waitForTimeout(350);
+ const beforeDown=await page.locator('#team').evaluate(el=>el.scrollTop);await moveTouch(bounds.width/2,bounds.bottom);await page.waitForTimeout(350);
  const afterDown=await page.locator('#team').evaluate(el=>el.scrollTop);assert(afterDown>beforeDown+10,'一覧下端で自動スクロール');
- await page.mouse.move(bounds.width/2,bounds.top);await page.waitForTimeout(350);assert((await page.locator('#team').evaluate(el=>el.scrollTop))<afterDown-10,'一覧上端で自動スクロール');
+ await moveTouch(bounds.width/2,bounds.top);await page.waitForTimeout(350);assert((await page.locator('#team').evaluate(el=>el.scrollTop))<afterDown-10,'一覧上端で自動スクロール');
  await releaseAt({x:3,y:300});assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),unchanged,'自動スクロールだけでは保存を変えない');
  // 解除・画面の外への移動も保存しない。
- await beginDrag(card('akane'));await page.keyboard.press('Escape');await page.mouse.up();assert.equal(await band.isVisible(),false);assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),unchanged);
+ await beginDrag(card('akane'));await page.keyboard.press('Escape');await touch('touchEnd',[]);touchPoint=null;assert.equal(await band.isVisible(),false);assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),unchanged);
  await dropList(3);await dropList(2);await dropList(1);assert.deepEqual(await members(),['ruka']);
  const lastMember=await page.evaluate(()=>RUNE_DEBUG.save);await dropList(0);assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),lastMember,'最後の1体は外せない');
  assert((await page.locator('#toast').textContent()).includes('最後の1体'));
  await dropSlot(card('akane'),4);await dropSlot(card('mizuha'),4);assert.deepEqual(await members(),['ruka','akane','mizuha'],'空き枠は左詰めで追加');
  // 実タッチで長押し前の縦移動をスクロールにし、その後の長押しドラッグを通す。
- const cdp=await context.newCDPSession(page);
- const touch=async(type,points)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:points.map(p=>({...p,id:1,radiusX:2,radiusY:2,force:1}))});
  await page.locator(card('akane')).evaluate(el=>el.scrollIntoView({block:'center'}));await page.waitForTimeout(120);
  const touchBefore=await page.evaluate(()=>RUNE_DEBUG.save),start=await center(card('akane')),scrollBefore=await page.locator('#team').evaluate(el=>el.scrollTop);
  await touch('touchStart',[start]);await page.waitForTimeout(25);
@@ -127,10 +130,11 @@ export async function smokeTeam(browser,url,root,errors){
   await releaseAt({x:3,y:300});
  }
  const dragSaved=await page.evaluate(()=>RUNE_DEBUG.save);
- await page.reload();await page.locator('#startBtn').click();assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),dragSaved,'ドラッグの編成とリーダーは再読込でも保存');
- await page.locator('#homeTeamBtn').click();await page.locator(card('akane')).click();assert.equal(await panel.getAttribute('data-id'),'akane','普通のタップの能力パネルを維持');
+ await page.reload();await page.locator('#startBtn').tap();assert.deepEqual(await page.evaluate(()=>RUNE_DEBUG.save),dragSaved,'ドラッグの編成とリーダーは再読込でも保存');
+ await page.locator('#homeTeamBtn').tap();await page.locator(card('akane')).tap();assert.equal(await panel.getAttribute('data-id'),'akane','普通のタップの能力パネルを維持');
  assert.equal(await band.isVisible(),false);assert.equal(await page.locator('#equipMemberBtn').isEnabled(),true);
  console.log('PASS: 編成ドラッグの追加・交換・並べ替え・外す・最後の1体・取消・未加入・上下自動スクロール・実タッチ・帯20%と保存');
  await context.close();
  console.log('PASS: 編成パネルの能力・未加入・選択と確定・詳細から戻る・390/375px');
+ await smokeTeamMac(browser,url,root,errors);
 }

@@ -212,7 +212,7 @@ try {
     await page.setViewportSize(viewport);
     await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   }
-  const c1 = await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1});
+  const c1 = await browser.newContext({hasTouch:true,viewport:{width:390,height:844},deviceScaleFactor:1});
   await c1.route('**/*', route => route.request().url().startsWith(url+'/') ? route.continue() : route.fulfill({status:200,contentType:'text/css',body:''}));
   const cPage = await c1.newPage();
   cPage.on('pageerror',error=>{errors.push('phase-c: '+error.message);console.error(error.stack);});
@@ -276,31 +276,31 @@ try {
   await cPage.locator('#homeSettingsBtn').click();
   await importFixture(full);
   assert.equal(await cPage.evaluate(()=>Object.keys(RUNE_DEBUG.save.roster).length),10);
-  await cPage.locator('#homeTeamBtn').click();
-  await cPage.locator('.team-tab[data-index="1"]').click();
+  await cPage.locator('#homeTeamBtn').tap();
+  await cPage.locator('.team-tab[data-index="1"]').tap();
   for(const [slot,id] of ['kagura','shizuku','tsubaki','hikari','crow'].entries()) {
-    await cPage.locator('.slot[data-slot="'+slot+'"]').click();
-    await cPage.locator('#teamContent .roster-card[data-id="'+id+'"]').click();
-    await cPage.locator('#equipMemberBtn').click();
+    await cPage.locator('.slot[data-slot="'+slot+'"]').tap();
+    await cPage.locator('#teamContent .roster-card[data-id="'+id+'"]').tap();
+    await cPage.locator('#equipMemberBtn').tap();
   }
   assert.deepEqual(await cPage.evaluate(()=>RUNE_DEBUG.save.teams[1].members),['kagura','shizuku','tsubaki','hikari','crow']);
-  await cPage.locator('.team-tab[data-index="2"]').click();
-  await cPage.locator('.slot[data-slot="0"]').click();
-  await cPage.locator('#teamContent .roster-card[data-id="yomogi"]').click();
-  await cPage.locator('#equipMemberBtn').click();
+  await cPage.locator('.team-tab[data-index="2"]').tap();
+  await cPage.locator('.slot[data-slot="0"]').tap();
+  await cPage.locator('#teamContent .roster-card[data-id="yomogi"]').tap();
+  await cPage.locator('#equipMemberBtn').tap();
   for(let slot=4;slot>=1;slot--) {
-    await cPage.locator('.slot[data-slot="'+slot+'"]').click();await cPage.locator('#removeMemberBtn').click();
+    await cPage.locator('.slot[data-slot="'+slot+'"]').tap();await cPage.locator('#removeMemberBtn').tap();
   }
   assert.deepEqual(await cPage.evaluate(()=>RUNE_DEBUG.save.teams[2].members),['yomogi']);
   assert.equal(await cPage.locator('#removeMemberBtn').isDisabled(),true);
   // 空き枠の最後を選んでも左詰めで追加され、既にいる仲間は重複しない。
-  await cPage.locator('.slot[data-slot="4"]').click();await cPage.locator('#teamContent .roster-card[data-id="akane"]').click();
-  await cPage.locator('#equipMemberBtn').click();
+  await cPage.locator('.slot[data-slot="4"]').tap();await cPage.locator('#teamContent .roster-card[data-id="akane"]').tap();
+  await cPage.locator('#equipMemberBtn').tap();
   assert.deepEqual(await cPage.evaluate(()=>RUNE_DEBUG.save.teams[2].members),['yomogi','akane']);
-  await cPage.locator('.slot[data-slot="0"]').click();await cPage.locator('#teamContent .roster-card[data-id="akane"]').click();
-  await cPage.locator('#equipMemberBtn').click();
+  await cPage.locator('.slot[data-slot="0"]').tap();await cPage.locator('#teamContent .roster-card[data-id="akane"]').tap();
+  await cPage.locator('#equipMemberBtn').tap();
   assert.deepEqual(await cPage.evaluate(()=>RUNE_DEBUG.save.teams[2].members),['akane','yomogi']);
-  await cPage.locator('.team-tab[data-index="1"]').click();
+  await cPage.locator('.team-tab[data-index="1"]').tap();
   for(const viewport of [{width:390,height:844},{width:375,height:667}]) {
     await settleViewport(cPage, viewport);
     await cPage.screenshot({path:resolve(root,'screenshots/phase-c1-team-'+viewport.width+'x'+viewport.height+'.png')});
