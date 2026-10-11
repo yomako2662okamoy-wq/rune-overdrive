@@ -219,7 +219,16 @@ button:not(:disabled):active,summary:active{transform:translateY(1px);box-shadow
 .roster-card[aria-pressed="true"]{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}
 .roster-card.unjoined{color:var(--ink-2)}
 .team-join-condition{color:var(--gold)}
-#team .slot,#team .roster-card{touch-action:pan-y pinch-zoom;-webkit-user-drag:none}
+#team .slot,#team .roster-card{touch-action:pan-y pinch-zoom;user-select:none;-webkit-user-select:none;-webkit-user-drag:none}
+@media(pointer:fine){#team .slot:not(.empty-slot),#team .roster-card{cursor:grab}}
+#team.team-mouse-drag,#team.team-mouse-drag *{cursor:grabbing}
+#team .team-swap-peer{box-shadow:inset 0 0 14px #FFE3A055;border-color:var(--gold)}
+.team-drag-band.team-mouse-band{right:auto;top:0;width:400px;max-width:calc(100vw - 16px);height:auto;max-height:none;z-index:37;grid-template-rows:repeat(2,20px);padding:8px 10px;gap:2px;background:rgba(12,10,25,.95);color:#fff;border:1px solid #ffffff40;border-left:4px solid var(--team-attr);border-radius:6px;font-size:13px;line-height:20px}
+.team-mouse-band .team-drag-line{display:block}
+.team-drag-ghost.team-mouse-ghost{font:inherit;color:var(--ink);padding:.5rem .25rem;text-align:center;background:var(--panel);opacity:.8}
+.team-mouse-ghost .emblem{width:100%;max-width:72px;margin:auto}
+.team-mouse-ghost strong,.team-mouse-ghost small{display:block}
+.team-mouse-ghost small{color:var(--ink-2);font-size:.72rem;line-height:1.5}
 #team img{-webkit-user-drag:none;pointer-events:none}
 .team-drag-band{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);z-index:35;height:min(90px,20vh);max-height:min(120px,20vh);padding:5px 10px;display:grid;grid-template-rows:repeat(3,minmax(0,1fr));gap:2px;background:#16122A;border-bottom:1px solid var(--gold);pointer-events:none;overflow:hidden;font-size:.72rem}
 .team-drag-line{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -383,6 +392,7 @@ const CONFIG = {
   ENEMY_STATUS_MAX_WIDTH: 150, ENEMY_STATUS_MIN_WIDTH: 30, ENEMY_REGEN_RATE: 0.05, ENDURE_HP: 0.5, ENEMY_DAMAGE_CAP: 50000, COMBO_ABSORB_MIN: 7, LOCK_COUNT: 6, ENEMY_STATUS_TURNS: 3, ENEMY_SKILL_TIME: 0.45, ENEMY_STATUS_TIME: 0.15, TRANSFORM_TIME: 0.55, ATTR_CYCLE: [0,1,2,3,4], ATTR_CHANGE_EVERY: 3,
   TEAM_DRAG_HOLD_MS: 250, TEAM_DRAG_SLOP: 8, TEAM_DRAG_EDGE: 48, TEAM_DRAG_SCROLL: 320,
   TEAM_DRAG_GHOST: 62, TEAM_DRAG_GAP: 8, TEAM_DRAG_CLICK_MS: 500,
+  TEAM_MOUSE_SLOP: 4, TEAM_MOUSE_DROP_PAD: 12, TEAM_MOUSE_BAND_GAP: 16,
   DARK_TURNS: 2, DARK_COUNT: 8, BOARD_STATUS_TIME: 0.1,
   POISON_COLOR: 6, POISON_RATE: 0.03, HAZARD_FX_TIME: 0.3,
   MATCH_MIN: 3,
@@ -4713,28 +4723,34 @@ function todayKey() { const date = new Date(); return [date.getFullYear(),String
 function joinText(ch) { return ch.joinDungeon ? "ダンジョン" + ch.joinDungeon.slice(1) + "クリアで加入" : "最初から"; }
 function showTeam() {
   cancelTeamDrag();
+  if(scene!=="team" && scene!=="detail")clearTeamMouseSelection();
   const scrollTop = scene === "team" ? $("team").scrollTop : 0;
   const team = saveData.teams[saveData.teamIndex], prepared = prepareTeam(saveData);
   teamSelected ||= team.members[teamSlot] || team.members[0];
   $("teamContent").innerHTML = '<header class="sel-head"><h2>編成</h2><button id="teamHomeBtn" class="btn ghost">ホームへ</button></header><div class="team-tabs">' + Array.from({length:CONFIG.TEAM_MAX},(_,i) => '<button class="btn team-tab" data-index="' + i + '" aria-pressed="' + (i === saveData.teamIndex) + '">編成' + (i+1) + '</button>').join("") + '</div><p class="board-note">タップで能力を確認、長押しで枠へ運んで編成。枠から一覧へ運ぶと外す。左端がリーダー。</p><div class="team-slots">' + Array.from({length:CONFIG.TEAM_MEMBERS},(_,i) => {
     const id = team.members[i], ch = CHARS.find(member => member.id === id);
-    return '<button class="slot" data-slot="' + i + '" aria-label="' + (i === 0 ? 'リーダー' : '枠'+(i+1)) + '" aria-pressed="' + (i === teamSlot) + '">' + (ch ? emblem(ch) + '<small>' + ch.name + '<br>Lv' + saveData.roster[id].lv + '</small>' : '<span>＋</span><small>空き</small>') + '</button>';
+    return '<button class="slot' + (ch ? '' : ' empty-slot') + '" data-slot="' + i + '" aria-label="' + (i === 0 ? 'リーダー' : '枠'+(i+1)) + '" aria-pressed="' + (i === teamSlot) + '">' + (ch ? emblem(ch) + '<small>' + ch.name + '<br>Lv' + saveData.roster[id].lv + '</small>' : '<span>＋</span><small>空き</small>') + '</button>';
   }).join("") + '</div><p class="leader">' + prepared.party[0].leader.name + '：' + prepared.party[0].leader.desc + '</p><p class="board-note" id="teamTotals">チームHP ' + fmt(prepared.teamMax) + ' ／回復力 ' + fmt(prepared.rcv) + '</p><button id="removeMemberBtn" class="btn ghost"' + (team.members.length <= 1 || teamSlot >= team.members.length ? ' disabled' : '') + '>選んだ枠を空ける</button><section id="teamMemberPanel" class="team-member-panel" aria-label="選んだ仲間の能力"></section><h3>仲間</h3><div class="roster-grid">' + CHARS.map(ch => '<button class="roster-card' + (!saveData.roster[ch.id] ? ' unjoined' : '') + '" data-id="' + ch.id + '" aria-pressed="' + (ch.id === teamSelected) + '">' + emblem(ch) + '<strong>' + ch.name + '</strong><small>' + (saveData.roster[ch.id] ? 'Lv' + saveData.roster[ch.id].lv + (team.members.includes(ch.id) ? '　編成中' : '') : joinText(ch)) + '</small></button>').join("") + '</div><p class="board-note">変更は自動保存されます。編成は1〜5体、同じ仲間は1体まで。</p>';
   bindButton("teamHomeBtn",showHome);
   $("teamContent").querySelectorAll(".team-tab").forEach(button => button.addEventListener("click",() => {
+    clearTeamMouseSelection();
     const index = Number(button.dataset.index), members = saveData.teams[index]?.members || team.members;
     adoptSave(setTeam(saveData,index,members)); teamSlot=0; teamSelected=members[0]; showTeam();
   }));
-  $("teamContent").querySelectorAll(".slot").forEach(button => button.addEventListener("click",() => {
+  $("teamContent").querySelectorAll(".slot").forEach(button => button.addEventListener("click",event => {
+    if(teamMouseClick(event,button))return;
     teamSlot = Math.min(Number(button.dataset.slot),team.members.length); teamSelected=team.members[teamSlot] || teamSelected; showTeam();
   }));
-  $("teamContent").querySelectorAll(".roster-card").forEach(button => button.addEventListener("click",() => {
-    teamSelected = button.dataset.id; renderTeamMemberPanel();
+  $("teamContent").querySelectorAll(".roster-card").forEach(button => button.addEventListener("click",event => {
+    if(teamMouseClick(event,button))return;
+    clearTeamMouseSelection();teamSelected = button.dataset.id; renderTeamMemberPanel();
     $("teamContent").querySelectorAll(".roster-card").forEach(card => card.setAttribute("aria-pressed",String(card.dataset.id === teamSelected)));
     $("teamMemberPanel").scrollIntoView({block:"nearest"});
   }));
-  bindButton("removeMemberBtn",() => {const members=[...team.members];members.splice(teamSlot,1);adoptSave(setTeam(saveData,saveData.teamIndex,members));teamSlot=Math.min(teamSlot,members.length-1);teamSelected=members[teamSlot];showTeam();});
+  bindButton("removeMemberBtn",() => {clearTeamMouseSelection();const members=[...team.members];members.splice(teamSlot,1);adoptSave(setTeam(saveData,saveData.teamIndex,members));teamSlot=Math.min(teamSlot,members.length-1);teamSelected=members[teamSlot];showTeam();});
   renderTeamMemberPanel(); menuScene("team"); $("team").scrollTop=scrollTop;
+  $("teamContent").querySelectorAll("img").forEach(img=>img.draggable=false);
+  updateTeamMouseSelection();
 }
 // ===== TEAM DRAG (SCENE / INPUT) =====
 // 画面上の入れ替え案だけを作り、保存の検証は既存のsetTeamに任せる。
@@ -4762,7 +4778,76 @@ function teamDragBandHtml(ch, member) {
     +(next?'<span class="team-drag-next">次 Lv'+next.lv+' '+artName(ch,next.tier)+'</span>':'')+'</div>';
 }
 let teamDrag=null, teamDragClickUntil=0;
-function teamDragTarget(x,y) {
+let teamMouseSelection=null, teamMousePanelClosed=false, teamPointerType="";
+function clearTeamMouseSelection(close=false) {teamMouseSelection=null;teamMousePanelClosed=close;}
+function updateTeamMouseSelection() {
+  const panel=$("teamMemberPanel");if(!panel)return;
+  panel.classList.toggle("hidden",teamMousePanelClosed);
+  $("teamContent").querySelectorAll(".team-swap-selected").forEach(node=>node.classList.remove("team-swap-selected"));
+  if(teamMouseSelection)$("teamContent").querySelectorAll('.roster-card[data-id="'+teamMouseSelection.id+'"],.slot[data-slot="'+teamMouseSelection.slot+'"]').forEach(node=>node.classList.add("team-swap-selected"));
+}
+// mouseのクリックだけを二段階交換にする。タップとキーボードの既存選択は保つ。
+function teamMouseClick(event,node) {
+  const type=event.pointerType||teamPointerType;
+  if(event.detail===0 || type!=="mouse") {clearTeamMouseSelection();return false;}
+  const members=saveData.teams[saveData.teamIndex].members, kind=node.classList.contains("slot")?"slot":"roster";
+  const slot=kind==="slot"?Number(node.dataset.slot):members.indexOf(node.dataset.id), id=kind==="slot"?members[slot]:node.dataset.id;
+  const selected=teamMouseSelection;
+  if(selected && (id!==selected.id || kind==="slot"&&slot!==selected.slot)) {
+    let source=selected,target=null;
+    if(kind==="slot")target={kind:"slot",slot};
+    else if(selected.slot>=0){source={id,kind:"roster"};target={kind:"slot",slot:selected.slot};}
+    else if(slot>=0)target={kind:"slot",slot};
+    if(target) {
+      const joined=!!saveData.roster[source.id],next=teamDropMembers(members,source,target,joined);
+      if(!joined){showToast(joinText(CHARS.find(ch=>ch.id===source.id)));return true;}
+      if(next){adoptSave(setTeam(saveData,saveData.teamIndex,next));teamSlot=Math.max(0,next.indexOf(source.id));teamSelected=source.id;clearTeamMouseSelection(true);showTeam();return true;}
+    }
+  }
+  if(!id){teamSlot=Math.min(slot,members.length);clearTeamMouseSelection();showTeam();return true;}
+  teamSlot=slot>=0?slot:teamSlot;teamSelected=id;teamMouseSelection={id,kind,slot};teamMousePanelClosed=false;
+  renderTeamMemberPanel();updateTeamMouseSelection();
+  $("teamContent").querySelectorAll(".slot").forEach(button=>button.setAttribute("aria-pressed",String(Number(button.dataset.slot)===teamSlot)));
+  $("teamContent").querySelectorAll(".roster-card").forEach(card=>card.setAttribute("aria-pressed",String(card.dataset.id===id)));
+  // 枠をクリックしたときは次の枠を見えるままにする。
+  if(kind==="roster")$("teamMemberPanel").scrollIntoView({block:"nearest"});
+  return true;
+}
+function teamMouseBandHtml(ch,member) {
+  const learned=CONFIG.ARTS.filter(art=>art.lv<=member.lv).at(-1),next=CONFIG.ARTS.find(art=>art.lv>member.lv);
+  const current=learned?artName(ch,learned.tier):"連鎖技 未習得";
+  return '<div class="team-drag-line">'+ch.name+' ／ '+RUNES[ch.attr].name+' ／ Lv'+member.lv+'</div>'
+    +'<div class="team-drag-line">'+current+(next?' ／ 次 Lv'+next.lv+' '+artName(ch,next.tier):' ／ 全技習得')+'</div>';
+}
+// UIの矩形判定。LOGIC／保存形式には加えない。
+function nearestTeamSlot(x,y,rects,pad) {
+  let nearest=null,best=Infinity;
+  for(const rect of rects) {
+    if(x<rect.left-pad||x>rect.right+pad||y<rect.top-pad||y>rect.bottom+pad)continue;
+    const distance=(x-(rect.left+rect.right)/2)**2+(y-(rect.top+rect.bottom)/2)**2;
+    if(distance<best){best=distance;nearest=rect.slot;}
+  }
+  return nearest;
+}
+function teamBandPosition(x,y,width,height,viewport,blocked,gap) {
+  const margin=CONFIG.TEAM_DRAG_GAP,overlap=r=>blocked&&r.x<blocked.right&&r.x+width>blocked.left&&r.y<blocked.bottom&&r.y+height>blocked.top;
+  const clampPoint=(px,py)=>({x:clamp(px,margin,viewport.width-width-margin),y:clamp(py,margin,viewport.height-height-margin)});
+  const raw=[{x:x+gap,y:y+gap},{x:x-width-gap,y:y+gap},{x:x+gap,y:y-height-gap},{x:x-width-gap,y:y-height-gap}];
+  const fits=p=>p.x>=margin&&p.y>=margin&&p.x+width<=viewport.width-margin&&p.y+height<=viewport.height-margin;
+  const exact=raw.find(p=>fits(p)&&!overlap(p));if(exact)return exact;
+  const points=raw.map(p=>clampPoint(p.x,p.y));
+  const fit=points.find(p=>!overlap(p));if(fit)return fit;
+  // 指している枠が大きい場合も帯を枠の上か下へ退避する。
+  if(blocked){for(const py of [blocked.bottom+gap,blocked.top-height-gap]){const p=clampPoint(x+gap,py);if(!overlap(p))return p;}}
+  return points[0];
+}
+function teamDragTarget(x,y,mouse=false) {
+  if(mouse && x>=0&&x<=innerWidth&&y>=0&&y<=innerHeight) {
+    const nodes=[...$("teamContent").querySelectorAll(".slot")];
+    const rects=nodes.map(node=>{const r=node.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,slot:Number(node.dataset.slot)};});
+    const index=nearestTeamSlot(x,y,rects,CONFIG.TEAM_MOUSE_DROP_PAD);
+    if(index!==null)return {kind:"slot",slot:index,node:nodes[index]};
+  }
   const node=document.elementFromPoint(x,y), slot=node?.closest("#team .slot");
   if (slot) return {kind:"slot",slot:Number(slot.dataset.slot),node:slot};
   const grid=$("teamContent").querySelector(".roster-grid"), r=grid?.getBoundingClientRect();
@@ -4771,13 +4856,23 @@ function teamDragTarget(x,y) {
 }
 function positionTeamDrag() {
   const d=teamDrag;if(!d?.active)return;
-  const ghost=$("teamDragGhost"), band=$("teamDragBand").getBoundingClientRect();
-  const x=clamp(d.x+CONFIG.TEAM_DRAG_GAP,0,innerWidth-ghost.offsetWidth), y=clamp(d.y+CONFIG.TEAM_DRAG_GAP,band.bottom+CONFIG.TEAM_DRAG_GAP,innerHeight-ghost.offsetHeight);
-  // 軽減設定では拡大・傾き・追従の遅れを付けず、静かな紋章を直接移動する。
+  const ghost=$("teamDragGhost"), band=$("teamDragBand"),target=teamDragTarget(d.x,d.y,d.mouse),joined=!!saveData.roster[d.id];
+  const bounds=band.getBoundingClientRect();
+  const x=d.mouse?d.x-d.offsetX:clamp(d.x+CONFIG.TEAM_DRAG_GAP,0,innerWidth-ghost.offsetWidth);
+  const y=d.mouse?d.y-d.offsetY:clamp(d.y+CONFIG.TEAM_DRAG_GAP,bounds.bottom+CONFIG.TEAM_DRAG_GAP,innerHeight-ghost.offsetHeight);
   ghost.style.transform='translate('+Math.round(x)+'px,'+Math.round(y)+'px)';
-  const target=teamDragTarget(d.x,d.y), joined=!!saveData.roster[d.id];
-  $("teamContent").querySelectorAll(".drop-over").forEach(node=>node.classList.remove("drop-over"));
-  if (target && joined && (target.kind==="slot" || (d.kind==="slot"&&d.members.length>1)))target.node.classList.add("drop-over");
+  $("teamContent").querySelectorAll(".drop-over,.team-swap-peer").forEach(node=>node.classList.remove("drop-over","team-swap-peer"));
+  if(target && joined && (target.kind==="slot" || d.kind==="slot"&&d.members.length>1)) {
+    target.node.classList.add("drop-over");
+    if(d.mouse&&target.kind==="slot") {
+      const peer=d.members[target.slot];if(peer&&peer!==d.id)$("teamContent").querySelector('.roster-card[data-id="'+peer+'"]').classList.add("team-swap-peer");
+    }
+  }
+  if(d.mouse) {
+    const blocked=target?.kind==="slot"?target.node.getBoundingClientRect():null;
+    const p=teamBandPosition(d.x,d.y,band.offsetWidth,band.offsetHeight,{width:innerWidth,height:innerHeight},blocked,CONFIG.TEAM_MOUSE_BAND_GAP);
+    band.style.left=p.x+'px';band.style.top=p.y+'px';
+  }
 }
 function teamDragFrame(now) {
   const d=teamDrag;if(!d?.active)return;
@@ -4797,12 +4892,17 @@ function beginTeamDrag(d) {
   d.active=true;d.members=[...saveData.teams[saveData.teamIndex].members];d.teamIndex=saveData.teamIndex;
   const ch=CHARS.find(ch=>ch.id===d.id), member=growCharacter(ch,saveData.roster[d.id]);
   const band=$("teamDragBand"),ghost=$("teamDragGhost"),slots=$("teamContent").querySelector(".team-slots"),screen=$("team");
-  band.innerHTML=teamDragBandHtml(ch,member);band.dataset.id=ch.id;band.classList.remove("hidden");
-  ghost.innerHTML=emblem(ch)+'<small>'+ch.name+'</small>';ghost.style.width=CONFIG.TEAM_DRAG_GHOST+'px';ghost.classList.remove("hidden");
+  band.classList.toggle("team-mouse-band",d.mouse);band.style.setProperty("--team-attr",RUNES[ch.attr].base);
+  band.innerHTML=d.mouse?teamMouseBandHtml(ch,member):teamDragBandHtml(ch,member);band.dataset.id=ch.id;band.classList.remove("hidden");
+  ghost.classList.toggle("team-mouse-ghost",d.mouse);
+  ghost.innerHTML=d.mouse?d.node.innerHTML:emblem(ch)+'<small>'+ch.name+'</small>';
+  ghost.style.width=(d.mouse?d.rect.width:CONFIG.TEAM_DRAG_GHOST)+'px';ghost.style.height=d.mouse?d.rect.height+'px':"";ghost.classList.remove("hidden");
+  ghost.querySelectorAll("img").forEach(img=>img.draggable=false);
+  if(d.mouse)clearTeamMouseSelection();
   const rect=slots.getBoundingClientRect(),style=getComputedStyle(slots);d.placeholder=document.createElement("div");
   d.placeholder.style.height=(rect.height+parseFloat(style.marginTop)+parseFloat(style.marginBottom))+'px';d.placeholder.setAttribute("aria-hidden","true");slots.before(d.placeholder);
-  const bounds=$("teamContent").getBoundingClientRect();screen.style.setProperty("--team-drag-left",bounds.left+'px');screen.style.setProperty("--team-drag-width",bounds.width+'px');screen.style.setProperty("--team-drag-top",(band.getBoundingClientRect().bottom+CONFIG.TEAM_DRAG_GAP)+'px');
-  screen.classList.add("team-dragging");d.node.classList.add("team-drag-source");
+  const bounds=$("teamContent").getBoundingClientRect();screen.style.setProperty("--team-drag-left",bounds.left+'px');screen.style.setProperty("--team-drag-width",bounds.width+'px');screen.style.setProperty("--team-drag-top",(d.mouse?CONFIG.TEAM_DRAG_GAP:band.getBoundingClientRect().bottom+CONFIG.TEAM_DRAG_GAP)+'px');
+  screen.classList.add("team-dragging");screen.classList.toggle("team-mouse-drag",d.mouse);d.node.classList.add("team-drag-source");
   slots.querySelectorAll(".slot").forEach(node=>node.classList.toggle("drop-ready",!!saveData.roster[ch.id]));
   try {d.node.setPointerCapture(d.pointerId);} catch(error) {}
   positionTeamDrag();d.frame=requestAnimationFrame(teamDragFrame);
@@ -4811,33 +4911,44 @@ function cancelTeamDrag(suppressClick=false) {
   const d=teamDrag;if(!d)return;teamDrag=null;clearTimeout(d.timer);cancelAnimationFrame(d.frame);
   if(suppressClick||d.active)teamDragClickUntil=performance.now()+CONFIG.TEAM_DRAG_CLICK_MS;
   $("teamDragBand").classList.add("hidden");$("teamDragGhost").classList.add("hidden");
-  $("team").classList.remove("team-dragging");d.placeholder?.remove();
-  $("teamContent").querySelectorAll(".drop-ready,.drop-over,.team-drag-source").forEach(node=>node.classList.remove("drop-ready","drop-over","team-drag-source"));
+  $("team").classList.remove("team-dragging","team-mouse-drag");d.placeholder?.remove();
+  $("teamDragBand").style.left="";$("teamDragBand").style.top="";$("teamDragBand").classList.remove("team-mouse-band");
+  $("teamContent").querySelectorAll(".drop-ready,.drop-over,.team-drag-source,.team-swap-peer").forEach(node=>node.classList.remove("drop-ready","drop-over","team-drag-source","team-swap-peer"));
   try {if(d.node.hasPointerCapture(d.pointerId))d.node.releasePointerCapture(d.pointerId);} catch(error) {}
 }
 $("teamContent").addEventListener("pointerdown",event=>{
+  teamPointerType=event.pointerType;
   if(scene!=="team" || teamDrag || event.button!==0 || event.isPrimary===false)return;
   const node=event.target.closest(".roster-card,.slot");if(!node)return;
   const kind=node.classList.contains("slot")?"slot":"roster",slot=Number(node.dataset.slot);
   const id=kind==="slot"?saveData.teams[saveData.teamIndex].members[slot]:node.dataset.id;if(!id)return;
   teamDragClickUntil=0;
-  const d={node,id,kind,slot,pointerId:event.pointerId,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,active:false};
-  teamDrag=d;d.timer=setTimeout(()=>beginTeamDrag(d),CONFIG.TEAM_DRAG_HOLD_MS);
+  const rect=node.getBoundingClientRect();
+  const d={node,id,kind,slot,pointerId:event.pointerId,mouse:event.pointerType==="mouse",rect,offsetX:event.clientX-rect.left,offsetY:event.clientY-rect.top,x:event.clientX,y:event.clientY,startX:event.clientX,startY:event.clientY,active:false};
+  teamDrag=d;
+  if(d.mouse){try{node.setPointerCapture(d.pointerId);}catch(error){}}
+  else d.timer=setTimeout(()=>beginTeamDrag(d),CONFIG.TEAM_DRAG_HOLD_MS);
 });
 window.addEventListener("pointermove",event=>{
   const d=teamDrag;if(!d || event.pointerId!==d.pointerId)return;
   d.x=event.clientX;d.y=event.clientY;
-  if(!d.active){if(Math.hypot(d.x-d.startX,d.y-d.startY)>CONFIG.TEAM_DRAG_SLOP)cancelTeamDrag(true);return;}
+  if(!d.active){
+    const distance=Math.hypot(d.x-d.startX,d.y-d.startY);
+    if(d.mouse){if(distance>=CONFIG.TEAM_MOUSE_SLOP)beginTeamDrag(d);}
+    else if(distance>CONFIG.TEAM_DRAG_SLOP)cancelTeamDrag(true);
+    if(!d.active)return;
+  }
   event.preventDefault();positionTeamDrag();
 },{passive:false});
 window.addEventListener("pointerup",event=>{
   const d=teamDrag;if(!d || event.pointerId!==d.pointerId)return;
   if(!d.active){cancelTeamDrag();return;}
-  event.preventDefault();const target=teamDragTarget(event.clientX,event.clientY),joined=!!saveData.roster[d.id];
+  event.preventDefault();const target=teamDragTarget(event.clientX,event.clientY,d.mouse),joined=!!saveData.roster[d.id];
   const members=teamDropMembers(d.members,d,target,joined);cancelTeamDrag(true);
   if(!joined && target?.kind==="slot"){showToast(joinText(CHARS.find(ch=>ch.id===d.id)));return;}
   if(d.kind==="slot" && target?.kind==="roster" && d.members.length===1){showToast("最後の1体は外せません");return;}
   if(!members || members.join(",")===d.members.join(","))return;
+  if(d.mouse)clearTeamMouseSelection(true);
   adoptSave(setTeam(saveData,d.teamIndex,members));teamSlot=Math.max(0,members.indexOf(d.id));teamSelected=members[teamSlot];showTeam();
 });
 window.addEventListener("pointercancel",event=>{if(teamDrag?.pointerId===event.pointerId)cancelTeamDrag(true);});
@@ -4851,10 +4962,15 @@ $("teamContent").addEventListener("dragstart",event=>event.preventDefault());
 window.addEventListener("blur",()=>cancelTeamDrag(true));
 window.addEventListener("resize",()=>cancelTeamDrag(true));
 document.addEventListener("visibilitychange",()=>{if(document.hidden)cancelTeamDrag(true);});
-document.addEventListener("keydown",event=>{if(teamDrag && event.key==="Escape"){event.preventDefault();cancelTeamDrag(true);}});
+document.addEventListener("keydown",event=>{
+  if(scene!=="team"||event.key!=="Escape"||event.ctrlKey||event.metaKey||event.altKey||typingTarget(document.activeElement))return;
+  if(teamDrag){event.preventDefault();cancelTeamDrag(true);return;}
+  if(teamMouseSelection){event.preventDefault();clearTeamMouseSelection(true);updateTeamMouseSelection();}
+});
 // ===== TEAM DRAG END =====
 // 編成で選んだ仲間の表示。能力の計算は既存のgrowCharacterを使う。
 function renderTeamMemberPanel() {
+  $("teamMemberPanel").classList.toggle("hidden",teamMousePanelClosed);
   const ch = CHARS.find(member => member.id === teamSelected);
   if (!ch) { $("teamMemberPanel").innerHTML = '<p class="board-note">仲間を選ぶと能力を表示します。</p>'; return; }
   const progress = saveData.roster[ch.id], member = growCharacter(ch,progress);
@@ -4865,6 +4981,7 @@ function renderTeamMemberPanel() {
   bindButton("teamDetailBtn",() => showDetail(ch.id,"team"));
   bindButton("equipMemberBtn",() => {
     if (!saveData.roster[ch.id]) return;
+    clearTeamMouseSelection();
     const members=[...saveData.teams[saveData.teamIndex].members], existing=members.indexOf(ch.id);
     if (existing >= 0) {
       if (teamSlot < members.length) [members[existing],members[teamSlot]]=[members[teamSlot],members[existing]];

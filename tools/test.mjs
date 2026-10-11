@@ -1057,3 +1057,39 @@ test('つかんだ能力帯は3行に顔・短いリーダー・技能ターン�
  context.member.lv=1;const unjoined=vm.runInContext('teamDragBandHtml(ch,member)',context);assert(unjoined.includes('次 Lv5 紅閃'));assert(!unjoined.includes('紅蓮斬'));
  context.member.lv=50;const max=vm.runInContext('teamDragBandHtml(ch,member)',context);assert(max.includes('紅蓮天墜'));assert(!max.includes('次 Lv'));
 });
+
+
+test('Macの2行帯は現在最上位と次の連鎖技だけを既存の名前で出す',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function teamMouseBandHtml('),html.indexOf('// UIの矩形判定。'));
+ const context=vm.createContext({CONFIG:plain(config),RUNES:[{name:'紅'}],artName:(ch,tier)=>['紅閃','紅蓮斬','緋焔乱舞','紅蓮天墜'][tier-1]});vm.runInContext(source,context);
+ context.ch={name:'アカネ',attr:0};context.member={lv:20,hp:999999,skill:{name:'技能の説明を出さない'}};
+ const band=vm.runInContext('teamMouseBandHtml(ch,member)',context);
+ assert.equal((band.match(/class="team-drag-line"/g)||[]).length,2);
+ for(const text of ['アカネ','紅','Lv20','紅蓮斬','次 Lv25 緋焔乱舞'])assert(band.includes(text),text);
+ for(const text of ['紅閃','紅蓮天墜','999999','技能の説明'])assert(!band.includes(text),text);
+ context.member.lv=1;assert(vm.runInContext('teamMouseBandHtml(ch,member)',context).includes('連鎖技 未習得 ／ 次 Lv5 紅閃'));
+ context.member.lv=50;const max=vm.runInContext('teamMouseBandHtml(ch,member)',context);assert(max.includes('紅蓮天墜 ／ 全技習得'));assert(!max.includes('次 Lv'));
+});
+
+test('Macの枠は12pxまで広く拾い、重なる範囲では最寄りの中心を選ぶ',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function nearestTeamSlot('),html.indexOf('function teamBandPosition('));
+ const context=vm.createContext({});vm.runInContext(source,context);
+ context.rects=[{left:100,right:144,top:20,bottom:100,slot:0},{left:150,right:194,top:20,bottom:100,slot:1}];
+ const hit=(x,y)=>vm.runInContext('nearestTeamSlot('+x+','+y+',rects,12)',context);
+ for(const [x,y] of [[88,60],[122,8],[122,112]])assert.equal(hit(x,y),0);
+ assert.equal(hit(87.9,60),null);assert.equal(hit(122,112.1),null);
+ assert.equal(hit(146,60),0);assert.equal(hit(148,60),1);assert.equal(hit(207,60),null);
+});
+
+test('Macの帯は16px右下から始まり、端では反転し、枠に重なると退避する',()=>{
+ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
+ const source=html.slice(html.indexOf('function teamBandPosition('),html.indexOf('function teamDragTarget('));
+ const context=vm.createContext({CONFIG:plain(config),clamp:(x,a,b)=>Math.max(a,Math.min(b,x))});vm.runInContext(source,context);
+ const pos=(x,y,blocked=null)=>{context.blocked=blocked;return plain(vm.runInContext('teamBandPosition('+x+','+y+',400,60,{width:1280,height:800},blocked,16)',context));};
+ assert.deepEqual(pos(500,400),{x:516,y:416});assert.deepEqual(pos(1260,400),{x:844,y:416});assert.deepEqual(pos(500,790),{x:516,y:714});
+ const block={left:400,right:495,top:8,bottom:138};const p=pos(440,50,block);
+ assert(p.x>=8&&p.y>=8&&p.x+400<=1272&&p.y+60<=792);
+ assert(!(p.x<block.right&&p.x+400>block.left&&p.y<block.bottom&&p.y+60>block.top));
+});
