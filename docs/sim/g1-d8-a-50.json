@@ -1,0 +1,31 @@
+{
+  "conditions": {
+    "K": 100,
+    "trials": 50,
+    "seed": 20261006,
+    "maxTurns": 300,
+    "levels": "recommended",
+    "turnsAverage": "all runs including failures"
+  },
+  "results": [
+    {
+      "dungeon": "d8",
+      "level": 35,
+      "K": 100,
+      "trials": 50,
+      "clears": 19,
+      "clearRate": 38,
+      "avgTurns": 28.22,
+      "avgDungeonTurns": 28.22,
+      "avgClearTurns": 26.210526315789473,
+      "avgCombos": 6.294117647058823,
+      "avgOD": 4.2,
+      "avgMinHP": 1819.4,
+      "avgMinHPPct": 11.547347042396545,
+      "minHP": 0,
+      "timeouts": 0,
+      "noPaths": 0,
+      "seed": 20261006
+    }
+  ]
+}

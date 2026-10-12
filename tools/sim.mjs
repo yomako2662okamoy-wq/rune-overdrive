@@ -30,10 +30,10 @@ else{
   const detail=o.output.replace(/\.csv$/i,'.json');
   writeFileSync(resolve(root,detail),JSON.stringify({conditions:{K:o.K,trials:o.trials,seed:o.seed,maxTurns:o.maxTurns,levels:o.levels||'recommended',turnsAverage:'all runs including failures'},results},null,2)+'\n');
   const byId=Object.fromEntries(results.map(r=>[r.dungeon,r]));
-  const clearTargets=[['d1',95,100],['d3',70,85],['d8',40,60]];
+  const clearTargets=[['d1',95,100],['d3',70,85],['d8',49,60]];
   const clearMet=clearTargets.filter(([id,min,max])=>byId[id]&&byId[id].clearRate>=min&&byId[id].clearRate<=max).length;
-  // F6（docs/design-fx.md）：d1は12〜18、d2〜3は16〜24、d4〜8は20〜30
-  const turnRange=id=>id==='d1'?[12,18]:Number(id.slice(1))<=3?[16,24]:[20,30];
+  // F6の基準を使い、d8だけ今回の3連戦目標（49〜60%／24〜29.4ターン）に合わせる。
+  const turnRange=id=>id==='d8'?[24,29.4]:id==='d1'?[12,18]:Number(id.slice(1))<=3?[16,24]:[20,30];
   const turnsMet=results.filter(r=>r.avgDungeonTurns>=turnRange(r.dungeon)[0]&&r.avgDungeonTurns<=turnRange(r.dungeon)[1]).length;
   console.log('SIM: K='+o.K+' / '+o.trials+' runs / 300 turn cap / '+results.length+' cases');
   console.log('TARGETS: clear '+clearMet+'/3, average turns '+turnsMet+'/'+results.length);

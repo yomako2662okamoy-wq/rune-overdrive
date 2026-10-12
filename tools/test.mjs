@@ -936,7 +936,7 @@ test('仲間と敵のタップ領域は小さな絵でも44pxを確保し、空�
 
 test('d8は元HPを保持して50%・25%・25%の3本になり、盤面のHP倍率も全形態に効く',()=>{
  const spec=dungeons[7].floors.at(-1)[0];
- assert.equal(spec.hpRate,.5);assert.equal(spec.hp,2073200);
+ assert.equal(spec.hpRate,.5);assert.equal(spec.hp,1969600);
  assert.deepEqual(plain(spec.skills.filter(s=>s.id==='transform').map(s=>[s.when,s.phase,s.to.hpRate])),[['depleted',1,.25],['depleted',2,.25]]);
  for(const scale of [1,1.5]) {
   let e=plain(logic.makeEnemies([spec],scale))[0];const base=spec.hp*scale;
