@@ -38,8 +38,8 @@ export async function smokeDungeons(browser,url,root,errors) {
       floors.add(before.floor);forms.add(before.form);
       if(await page.evaluate(()=>RUNE_DEBUG.state.dungeon.id==='d8'&&RUNE_DEBUG.state.enemies[0]?.boss)) {
         bossForms.add(before.form);
-        const display=await page.evaluate(()=>{const e=RUNE_DEBUG.state.enemies[0];return {hp:e.hp,maxHp:e.maxHp,base:e.baseMaxHp,viewHp:e.v.hp,viewMax:e.v.maxHp,form:e.v.form};});
-        assert.equal(display.base,324000);assert.equal(display.maxHp,before.form===1?162000:81000);
+        const display=await page.evaluate(()=>{const e=RUNE_DEBUG.state.enemies[0];return {hp:e.hp,maxHp:e.maxHp,base:e.baseMaxHp,baseExpected:Math.round(RUNE_DEBUG.state.dungeon.floors.at(-1)[0].hp*RUNE_DEBUG.config.HP_SCALE),viewHp:e.v.hp,viewMax:e.v.maxHp,form:e.v.form};});
+        assert.equal(display.base,display.baseExpected);assert.equal(display.maxHp,Math.floor(display.baseExpected*(before.form===1?.5:.25)));
         assert.equal(display.viewMax,display.maxHp);assert.equal(display.viewHp,display.hp);assert.equal(display.form,before.form);
         await shots('d8-form-'+before.form);
       }
@@ -69,14 +69,14 @@ export async function smokeDungeons(browser,url,root,errors) {
         const last=d.state.stats.turns;d.resolve();return last;
       },turn);
       await page.waitForFunction(last=>RUNE_DEBUG.state.stats.turns>last&&(RUNE_DEBUG.phase==='input'||RUNE_DEBUG.scene==='result'),last,{timeout:30000});
-      const check=await page.evaluate(()=>{if(!window.d8Expected)return null;const d=RUNE_DEBUG,e=d.state.enemies[0],x=window.d8Expected;return {hp:e.hp,maxHp:e.maxHp,form:e.form,viewHp:e.v.hp,viewMax:e.v.maxHp,viewForm:e.v.form,earned:d.state.earnedExp,expBefore:window.d8ExpBefore,expDiv:d.config.EXP_DIV,expected:x.next.enemies[0],expectedExp:x.next.earnedExp,hits:x.events.filter(e=>e.t==='art'||e.t==='attack').flatMap(e=>e.hits),transforms:x.events.filter(e=>e.id==='transform')};});
+      const check=await page.evaluate(()=>{if(!window.d8Expected)return null;const d=RUNE_DEBUG,e=d.state.enemies[0],x=window.d8Expected;return {hp:e.hp,maxHp:e.maxHp,form:e.form,viewHp:e.v.hp,viewMax:e.v.maxHp,viewForm:e.v.form,earned:d.state.earnedExp,expBefore:window.d8ExpBefore,expDiv:d.config.EXP_DIV,baseExpected:Math.round(d.state.dungeon.floors.at(-1)[0].hp*d.config.HP_SCALE),expected:x.next.enemies[0],expectedExp:x.next.earnedExp,hits:x.events.filter(e=>e.t==='art'||e.t==='attack').flatMap(e=>e.hits),transforms:x.events.filter(e=>e.id==='transform')};});
       if(check) {
         assert.equal(check.hp,check.expected.hp);assert.equal(check.earned,check.expectedExp);
         assert.equal(check.viewHp,check.hp);assert.equal(check.viewMax,check.maxHp);assert.equal(check.viewForm,check.form);
         if(check.transforms.length) {
           assert.equal(check.transforms.length,1);assert.equal(check.hp,check.maxHp,'次の形態でHPバー満タン');
           assert.equal(check.earned,check.expBefore,'形態変化では経験値なし');assert(check.hits.every(hit=>!hit.killed&&hit.hp>=1),'連鎖技と後続攻撃で途中の形態を倒し切らない');
-        } else if(check.hp===0)assert.equal(check.earned-check.expBefore,324000/check.expDiv,'最後だけ3本合計の経験値');
+        } else if(check.hp===0)assert.equal(check.earned-check.expBefore,Math.floor(check.baseExpected/check.expDiv),'最後だけ3本合計の経験値');
       }
     }
     assert.equal(await page.locator('#resTitle').textContent(),'CLEAR!','HPを変更せず新ダンジョンを最後まで通す');
@@ -95,7 +95,7 @@ export async function smokeDungeons(browser,url,root,errors) {
     assert.equal(await page.locator('#dungeonList .dcard').count(),8);
     assert.equal(await page.locator('#dungeonList .dcard').nth(3).isDisabled(),false);
     assert.equal(await page.locator('#dungeonList .dcard').nth(4).isDisabled(),true);
-    assert((await page.locator('#dungeonList .dcard').nth(3).textContent()).includes('推奨Lv 24（いまLv1）'));
+    assert((await page.locator('#dungeonList .dcard').nth(3).textContent()).includes('推奨Lv 21（いまLv1）'));
     await page.locator('#dungeonList .dcard').nth(3).scrollIntoViewIfNeeded();
     await shots('select-lowlevel');
     const fixture=await page.evaluate(()=>{const data=RUNE_DEBUG.save;for(const m of Object.values(data.roster))m.lv=50;return data;});

@@ -213,7 +213,8 @@ test('育成の必要経験値・連続レベルアップ・能力・上限・�
 });
 
 test('倒した敵だけの経験値を全参加者へ与え、初クリア結晶は一度だけで、全滅でも倒した分を受け取る', () => {
-  const initial=game({board:tenGroups(),enemies:[{attr:2,hp:1,maxHp:4000,def:0,atk:1,turn:2,cd:2,acts:0}]});
+  // 経験値は最大HP÷EXP_DIV（G1で75）。15000÷75＝200
+  const initial=game({board:tenGroups(),enemies:[{attr:2,hp:1,maxHp:15000,def:0,atk:1,turn:2,cd:2,acts:0}]});
   const resolved=logic.resolveTurn(deepFreeze(initial),{},logic.makeRngs(1));
   assert.equal(resolved.next.earnedExp,200);
   const saved=deepFreeze(logic.createSave()),run={...plain(resolved.next),dungeon:{id:'d1'},boardSize:'7x6'};
@@ -530,7 +531,7 @@ test('根性はHP50%以上の致死打に1回だけHP1で耐え、倒した時�
   assert.equal(first.next.enemies[0].hp,1);assert.equal(first.next.earnedExp||0,0);
   assert(first.events.some(e=>e.t==='endured'));
   const second=logic.resolveTurn({...first.next,board:tenGroups()}, {},logic.makeRngs(8));
-  assert.equal(second.next.enemies[0].hp,0);assert.equal(second.next.earnedExp,50);
+  assert.equal(second.next.enemies[0].hp,0);assert.equal(second.next.earnedExp,13,'1000÷75の切り捨て');
   const recast=logic.resolveEnemySkills({...first.next,enemies:[{...first.next.enemies[0],skillUsed:{}}]},'preempt',logic.makeRngs(8));
   assert.equal(recast.next.enemies[0].statuses.endure.used,true,'再付与でも使用済みを戻さない');
 });
@@ -562,9 +563,10 @@ test('先制は登場後に技1つだけ・再発動なしで、操作前に通�
 
 test('形態変化は割合で起きず、枯渇時に1回だけ満タンとなり次の形態の技へ切り替わる', () => {
   const boss=plain(logic.makeEnemies(dungeons[7].floors.at(-1),1))[0];
+  const base=boss.baseMaxHp,quarter=Math.floor(base*.25),forms=boss.skills.filter(s=>s.id==='transform');
   boss.atk=0;boss.cd=99;
   let g=game({enemies:[boss]});
-  for(const hp of [54000,27000,1]) {
+  for(const hp of [boss.maxHp*.5,boss.maxHp*.25,1]) {
     const result=logic.resolveEnemySkills({...g,enemies:[{...boss,hp}]},'end',logic.makeRngs(5));
     assert.equal(result.events.some(e=>e.id==='transform'),false,'割合やHP1だけでは変化しない');
   }
@@ -572,15 +574,15 @@ test('形態変化は割合で起きず、枯渇時に1回だけ満タンとな�
   assert.equal(hit.enemy.hp,1);assert.equal(hit.hit.killed,false);
   const result=logic.resolveEnemySkills({...g,enemies:[hit.enemy]},'end',logic.makeRngs(5));
   const enemy=result.next.enemies[0];
-  assert.equal(enemy.form,2);assert.equal(enemy.hp,54000);assert.equal(enemy.maxHp,54000);assert.equal(enemy.baseMaxHp,216000);
-  assert.equal(enemy.atk,2808);assert.equal(enemy.turn,1);assert.equal(enemy.formExhausted,undefined);
+  assert.equal(enemy.form,2);assert.equal(enemy.hp,quarter);assert.equal(enemy.maxHp,quarter);assert.equal(enemy.baseMaxHp,base);
+  assert.equal(enemy.atk,forms[0].to.atk);assert.equal(enemy.turn,1);assert.equal(enemy.formExhausted,undefined);
   assert.equal(result.events.filter(e=>e.id==='transform').length,1);
-  const event=result.events.find(e=>e.id==='transform');assert.equal(event.hp,54000);assert.equal(event.maxHp,54000);
+  const event=result.events.find(e=>e.id==='transform');assert.equal(event.hp,quarter);assert.equal(event.maxHp,quarter);
   assert.equal(logic.resolveEnemySkills(result.next,'end',logic.makeRngs(5)).events.some(e=>e.id==='transform'),false);
-  const exhausted=logic.hitEnemy(enemy,999999,{attr:0,combos:10}).enemy;
+  const exhausted=logic.hitEnemy(enemy,base*10,{attr:0,combos:10}).enemy;
   const third=logic.resolveEnemySkills({...g,enemies:[{...exhausted,elapsed:2}]},'end',logic.makeRngs(5));
-  assert.equal(third.next.enemies[0].form,3);assert.equal(third.next.enemies[0].hp,54000);
-  assert.equal(third.next.enemies[0].atk,3024);assert.equal(third.next.enemies[0].bigEvery,2);
+  assert.equal(third.next.enemies[0].form,3);assert.equal(third.next.enemies[0].hp,quarter);
+  assert.equal(third.next.enemies[0].atk,forms[1].to.atk);assert.equal(third.next.enemies[0].bigEvery,2);
   assert.equal(third.events.some(e=>e.id==='dark'),false,'変化後は第三形態の技を使う');
 });
 
@@ -628,13 +630,14 @@ test('★はクリア・目標ターン・目標コンボを独立判定し、�
   }
 });
 test('★報酬は各10・初回30を別に付け、再挑戦／保存読込では重複しない', () => {
-  const saved=logic.createSave(),run=game({dungeon:plain(dungeons[0]),boardSize:'7x6',earnedExp:0,stats:{turns:99,maxCombo:5,totalDmg:0,ods:0}});
+  // d1の星の目標（G1）：13ターン以内、最大10コンボ以上
+  const saved=logic.createSave(),run=game({dungeon:plain(dungeons[0]),boardSize:'7x6',earnedExp:0,stats:{turns:99,maxCombo:9,totalDmg:0,ods:0}});
   const first=logic.resolveRewards(deepFreeze(saved),run,true);
   assert.equal(first.rewards.crystalFirst,30);assert.equal(first.rewards.starCrystal,10);assert.equal(first.next.crystal,40);
   assert.deepEqual(plain(first.next.dungeons.d1.stars),[true,false,false]);
-  const combo=logic.resolveRewards(logic.normalizeSave(first.next),{...run,stats:{...run.stats,maxCombo:6}},true);
+  const combo=logic.resolveRewards(logic.normalizeSave(first.next),{...run,stats:{...run.stats,maxCombo:10}},true);
   assert.equal(combo.rewards.starCrystal,10);assert.deepEqual(plain(combo.next.dungeons.d1.stars),[true,false,true]);
-  const fast=logic.resolveRewards(combo.next,{...run,stats:{...run.stats,turns:12}},true);
+  const fast=logic.resolveRewards(combo.next,{...run,stats:{...run.stats,turns:13}},true);
   assert.equal(fast.rewards.starCrystal,10);assert.equal(fast.next.crystal,60);
   const repeat=logic.resolveRewards(logic.parseSave(JSON.stringify(fast.next)),{...run,stats:{turns:1,maxCombo:99}},true);
   assert.equal(repeat.rewards.crystal,0);assert.equal(repeat.next.crystal,60);
@@ -647,7 +650,7 @@ test('★報酬は各10・初回30を別に付け、再挑戦／保存読込で�
 test('追加ダンジョンは指定の階数・推奨Lv・全フロアの敵データを持ち、技の条件が有効', () => {
   assert.equal(dungeons.length,8);
   assert.deepEqual(plain(dungeons.map(d=>d.floors.length)),[4,4,4,5,5,5,6,6]);
-  assert.deepEqual(plain(dungeons.map(d=>d.recommendedLv)),[1,8,18,24,30,36,42,48]);
+  assert.deepEqual(plain(dungeons.map(d=>d.recommendedLv)),[1,10,17,21,25,28,33,35]);
   const known=['lock','poison','dark','absorb','comboAbsorb','damageCap','endure','regen','transform','attrChange'];
   for(const dungeon of dungeons.slice(3)) {
     const party=logic.makeParty(chars.slice(0,5),Object.fromEntries(chars.slice(0,5).map(ch=>[ch.id,{lv:dungeon.recommendedLv,exp:0,skillLv:1}])));
@@ -812,7 +815,7 @@ test('連鎖技は通常攻撃の前に出て、hits全件が累計ダメージ�
  assert.equal(artTurn({},4).events.some(e=>e.t==='art'),false);
 });
 test('連鎖技の撃破経験値は一度だけ加算し、上限・吸収・根性も通常攻撃と同じ',()=>{
- const killed=artTurn({hp:1,maxHp:4000});
+ const killed=artTurn({hp:1,maxHp:15000});
  assert.equal(killed.events.find(e=>e.t==='art').hits[0].hp,0);
  assert.equal(killed.next.earnedExp,200);
  assert.equal(killed.events.some(e=>e.t==='attack'),false);
@@ -823,7 +826,7 @@ test('連鎖技の撃破経験値は一度だけ加算し、上限・吸収・�
  const h=absorbed.events.find(e=>e.t==='art').hits[0];assert.equal(h.absorbed,true);assert.equal(h.dmg,0);assert(h.hp>500000);
  const endured=artTurn({hp:100,maxHp:100,statuses:{endure:{from:.5,used:false,turns:null}}});
  const e=endured.events.find(e=>e.t==='art').hits[0];assert.equal(e.endured,true);assert.equal(e.hp,1);
- assert.equal(endured.next.earnedExp,5,'後続の通常攻撃で倒した分だけ');
+ assert.equal(endured.next.earnedExp,1,'後続の通常攻撃で倒した分だけ（100÷75の切り捨て）');
 });
 
 test('ミュートは旧セーブでオフを補完し、オンを保存して再読込できる',()=>{
@@ -933,10 +936,10 @@ test('仲間と敵のタップ領域は小さな絵でも44pxを確保し、空�
 
 test('d8は元HPを保持して50%・25%・25%の3本になり、盤面のHP倍率も全形態に効く',()=>{
  const spec=dungeons[7].floors.at(-1)[0];
- assert.equal(spec.hpRate,.5);assert.equal(spec.hp,216000);
+ assert.equal(spec.hpRate,.5);assert.equal(spec.hp,2073200);
  assert.deepEqual(plain(spec.skills.filter(s=>s.id==='transform').map(s=>[s.when,s.phase,s.to.hpRate])),[['depleted',1,.25],['depleted',2,.25]]);
  for(const scale of [1,1.5]) {
-  let e=plain(logic.makeEnemies([spec],scale))[0];const base=216000*scale;
+  let e=plain(logic.makeEnemies([spec],scale))[0];const base=spec.hp*scale;
   assert.equal(e.hp,base*.5);assert.equal(e.maxHp,base*.5);assert.equal(e.baseMaxHp,base);
   let sum=e.maxHp;
   for(const form of [2,3]) {
@@ -953,21 +956,21 @@ test('残る形態は根性と上限適用後も連続攻撃でHP1に止まり�
  const boss=plain(logic.makeEnemies(dungeons[7].floors.at(-1),1))[0];
  boss.statuses={endure:{from:.5,turns:null}};
  const original=JSON.stringify(boss);
- let result=logic.hitEnemy(deepFreeze(boss),999999,{attr:0,combos:10});
+ let result=logic.hitEnemy(deepFreeze(boss),boss.baseMaxHp*10,{attr:0,combos:10});
  assert.equal(result.hit.endured,true);assert.equal(result.enemy.formExhausted,true);assert.equal(result.enemy.endureUsed,true);
  for(let i=0;i<8;i++) {
-  result=logic.hitEnemy(deepFreeze(result.enemy),999999,{attr:0,combos:10});
+  result=logic.hitEnemy(deepFreeze(result.enemy),boss.baseMaxHp*10,{attr:0,combos:10});
   assert.equal(result.enemy.hp,1);assert.equal(result.hit.killed,false);assert.equal(result.hit.dmg,0);
  }
  assert.equal(JSON.stringify(boss),original);
  const partial={...boss,hp:10,statuses:{damageCap:{limit:5}}};
  assert.equal(logic.hitEnemy(partial,99999,{attr:0,combos:10}).enemy.formExhausted,undefined);
  assert.equal(logic.hitEnemy({...partial,hp:5},99999,{attr:0,combos:10}).enemy.formExhausted,true);
- const blocked=logic.hitEnemy({...boss,statuses:{comboAbsorb:{min:8,turns:3}}},999999,{attr:0,combos:7});
+ const blocked=logic.hitEnemy({...boss,statuses:{comboAbsorb:{min:8,turns:3}}},boss.baseMaxHp*10,{attr:0,combos:7});
  assert.equal(blocked.enemy.hp,boss.hp);assert.equal(blocked.enemy.formExhausted,undefined);
- const absorbed=logic.hitEnemy({...boss,hp:100,statuses:{absorb:{attr:0,turns:3}}},999999,{attr:0,combos:10});
+ const absorbed=logic.hitEnemy({...boss,hp:100,statuses:{absorb:{attr:0,turns:3}}},boss.baseMaxHp*10,{attr:0,combos:10});
  assert.equal(absorbed.enemy.hp,boss.hp);assert.equal(absorbed.enemy.formExhausted,undefined);
- const revived=logic.hitEnemy({...result.enemy,statuses:{absorb:{attr:0,turns:3}}},999999,{attr:0,combos:10});
+ const revived=logic.hitEnemy({...result.enemy,statuses:{absorb:{attr:0,turns:3}}},boss.baseMaxHp*10,{attr:0,combos:10});
  const after=logic.resolveEnemySkills(game({enemies:[revived.enemy]}),'end',logic.makeRngs(1));
  assert.equal(after.next.enemies[0].form,2,'枯渇済みの印は後続の吸収回復で取り消されない');
 });
@@ -976,6 +979,7 @@ test('超過ダメージは次の形態へ持ち越さず、連鎖技＋通常�
  const rules={...plain(config),MAX_WAVES:3},boss=plain(logic.makeEnemies(dungeons[7].floors.at(-1),1))[0];
  boss.atk=0;boss.bigMult=0;boss.def=0;
  let g=game({rules,earnedExp:0,enemies:[boss],party:plain(logic.makeParty(chars.slice(0,5),Object.fromEntries(chars.slice(0,5).map(ch=>[ch.id,{lv:50,exp:0,skillLv:1}]))))});
+ g.party.forEach(member=>member.atk=boss.baseMaxHp*10);
  g=plain(logic.resolveEnemySkills(g,'preempt',logic.makeRngs(5)).next);
  for(const form of [2,3,3]) {
   const before=JSON.stringify(g);
@@ -986,21 +990,21 @@ test('超過ダメージは次の形態へ持ち越さず、連鎖技＋通常�
   const enemy=result.next.enemies[0];assert.equal(enemy.form,form);
   if(g.enemies[0].form!==3) {
    assert(attacks.length>=2,'途中の形態では複数の後続攻撃を検証');
-   assert.equal(enemy.hp,54000);assert.equal(result.next.earnedExp,0);
+   assert.equal(enemy.hp,Math.floor(boss.baseMaxHp*.25));assert.equal(result.next.earnedExp,0);
    assert.equal(result.events.filter(e=>e.id==='transform').length,1);
    assert.equal(art.hits[0].hp,1);assert(attacks.every(e=>e.hits.every(h=>h.hp===1&&!h.killed)));
    const tx=result.events.findIndex(e=>e.id==='transform');assert(tx>result.events.findLastIndex(e=>e.t==='attack'));
   } else {
    assert.equal(enemy.hp,0);assert.equal(art.hits[0].killed,true);assert.equal(attacks.length,0,'最終撃破後に余分な通常攻撃をしない');
    assert.equal(result.events.some(e=>e.id==='transform'),false);
-   assert.equal(result.next.earnedExp,216000/config.EXP_DIV);
+   assert.equal(result.next.earnedExp,Math.floor(boss.baseMaxHp/config.EXP_DIV));
   }
   g=plain(result.next);
  }
  const again=logic.resolveTurn(g,{board:tenGroups()},{board:()=>0,enemy:()=>.5});assert.equal(again.next.earnedExp,g.earnedExp,'経験値は二重付与しない');
  // 連鎖技なし・通常攻撃だけで第三形態を倒す場合も元HPで計算。
  const single=game({rules:{...rules,ARTS:[]},board:tenGroups(),earnedExp:0,enemies:[{...g.enemies[0],hp:1}],party:g.party});
- assert.equal(logic.resolveTurn(single,{}, {board:()=>0,enemy:()=>.5}).next.earnedExp,216000/config.EXP_DIV);
+ assert.equal(logic.resolveTurn(single,{}, {board:()=>0,enemy:()=>.5}).next.earnedExp,Math.floor(boss.baseMaxHp/config.EXP_DIV));
 });
 
 test('形態の枯渇は再生で消えず、1回のターン終わりに形態変化が連続しない',()=>{

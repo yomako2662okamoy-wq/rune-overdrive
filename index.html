@@ -372,11 +372,11 @@ const CONFIG = {
   LEADER_ATK: 2, LEADER_COMBO: 7, LEADER_EXTRA: 1.5,
   BOSS_ENRAGE_HP: 0.5, BOSS_ENRAGE_ATK: 1.3, BOSS_BIG_EVERY: 3, BOSS_BIG_MULT: 2.5,
   ENEMY_RAND_MIN: 0.9, ENEMY_RAND_SPREAD: 0.2, ENEMY_SEED_SALT: 0x9e3779b9, CORE_COUNT: 3,
-  STAT_GROWTH: 0.03, EXP_BASE: 100, EXP_POW: 1.5, EXP_DIV: 20, SKILL_LV_COST: [30, 80], SKILL_TURN_MIN: 2,
+  STAT_GROWTH: 0.03, EXP_BASE: 100, EXP_POW: 1.5, EXP_DIV: 75, SKILL_LV_COST: [30, 80], SKILL_TURN_MIN: 2,
   DETAIL_ICON_SIZE: 240, RESULT_EXP_TIME: 0.22, RESULT_LEVEL_TIME: 0.16, RESULT_REWARD_TIME: 0.35,
-  SAVE_VERSION: 2, LV_MAX: 50, SKILL_LV_MAX: 3, TEAM_MAX: 3, TEAM_MEMBERS: 5, CRYSTAL_FIRST_CLEAR: 30, CRYSTAL_STAR: 10, LOW_LEVEL_GAP: 5,
-  DUNGEON_LEVELS: [1,8,18,24,30,36,42,48],
-  STAR_GOALS: [{turns:12,combo:6},{turns:18,combo:7},{turns:28,combo:8},{turns:32,combo:9},{turns:36,combo:10},{turns:40,combo:11},{turns:46,combo:12},{turns:54,combo:14}],
+  SAVE_VERSION: 2, LV_MAX: 50, SKILL_LV_MAX: 3, TEAM_MAX: 3, TEAM_MEMBERS: 5, CRYSTAL_FIRST_CLEAR: 30, CRYSTAL_STAR: 10, LOW_LEVEL_GAP: 3,
+  DUNGEON_LEVELS: [1,10,17,21,25,28,33,35],
+  STAR_GOALS: [{turns:13,combo:10},{turns:19,combo:11},{turns:19,combo:12},{turns:21,combo:13},{turns:20,combo:13},{turns:23,combo:14},{turns:25,combo:15},{turns:23,combo:15}],
   SKYFALL_BIAS: 0.3, SKYFALL_TURNS: 3, SHIELD_TURNS: 2, SHIELD_RATE: 0.5, DEF_ZERO_TURNS: 3, ENHANCE_COUNT: 10, COLUMN_COUNT: 2,
   LEADERS: {
     akane: [{type:"always",mult:2},{type:"comboAtk",min:7,mult:1.5}],
@@ -526,63 +526,63 @@ function boss(attr, name, hp, def, atk, turn, bigName, variant) {
 }
 const DUNGEONS = [
   { id: "d1", name: "はじまりの祭壇", hue: 262, desc: "まずはここから。操作に慣れよう", floors: [
-    [mob("sentinel", 0, 7600, 0, 225, 2), mob("sentinel", 2, 7600, 0, 225, 2)],
-    [mob("wisp", 1, 11400, 50, 300, 2), mob("sentinel", 3, 9500, 0, 275, 2)],
-    [mob("golem", 2, 17100, 150, 400, 3), mob("wisp", 4, 11400, 50, 325, 2), mob("sentinel", 0, 9500, 0, 275, 2)],
-    [boss(2, "祭壇の守護者オルド", 76000, 150, 450, 1, "オルド・インパクト", 0)],
+    [mob("sentinel", 0, 16700, 0, 415, 2), mob("sentinel", 2, 16700, 0, 415, 2)],
+    [mob("wisp", 1, 25000, 50, 550, 2), mob("sentinel", 3, 20800, 0, 505, 2)],
+    [mob("golem", 2, 37500, 150, 735, 3), mob("wisp", 4, 25000, 50, 600, 2), mob("sentinel", 0, 20800, 0, 505, 2)],
+    [{ ...boss(2, "祭壇の守護者オルド", 203600, 150, 935, 1, "オルド・インパクト", 0), autoEnrage: false, bigEvery: 3, bigMult: 1.8 }],
   ] },
   { id: "d2", name: "蒼き水晶洞", hue: 212, desc: "敵が硬くなる。属性相性を意識しよう", floors: [
-    [mob("wisp", 0, 9000, 100, 800, 2), mob("golem", 1, 14000, 250, 950, 3)],
-    [mob("sentinel", 2, 10000, 100, 850, 2), mob("wisp", 3, 9000, 100, 800, 1), mob("sentinel", 4, 10000, 100, 850, 2)],
-    [mob("golem", 4, 18000, 300, 1100, 3), mob("golem", 3, 18000, 300, 1100, 3)],
-    [boss(1, "水晶竜ヴァルナ", 110000, 300, 1300, 1, "アビス・ブレス", 1)],
+    [mob("wisp", 0, 62300, 100, 1045, 2), mob("golem", 1, 96900, 250, 1245, 3)],
+    [mob("sentinel", 2, 69200, 100, 1110, 2), mob("wisp", 3, 62300, 100, 1045, 1), mob("sentinel", 4, 69200, 100, 1110, 2)],
+    [mob("golem", 4, 124600, 300, 1440, 3), mob("golem", 3, 124600, 300, 1440, 3)],
+    [{ ...boss(1, "水晶竜ヴァルナ", 651600, 300, 2180, 1, "アビス・ブレス", 1), autoEnrage: false, bigEvery: 3, bigMult: 1.8 }],
   ] },
   { id: "d3", name: "宵闇の大聖堂", hue: 318, desc: "10コンボのオーバードライブが鍵になる", floors: [
-    [mob("golem", 0, 24000, 400, 1300, 2), mob("wisp", 4, 18000, 300, 1150, 1)],
-    [mob("sentinel", 1, 20000, 200, 1100, 2), mob("sentinel", 3, 20000, 200, 1100, 2), mob("sentinel", 4, 20000, 200, 1100, 2)],
-    [mob("golem", 2, 30000, 500, 1450, 2), mob("golem", 0, 30000, 500, 1450, 2)],
-    [boss(4, "宵闇の王ノワール", 140000, 500, 1700, 1, "エターナル・ナイト", 2)],
+    [mob("golem", 0, 109600, 400, 1425, 2), mob("wisp", 4, 82200, 300, 1260, 1)],
+    [mob("sentinel", 1, 91300, 200, 1205, 2), mob("sentinel", 3, 91300, 200, 1205, 2), mob("sentinel", 4, 91300, 200, 1205, 2)],
+    [mob("golem", 2, 137000, 500, 1590, 2), mob("golem", 0, 137000, 500, 1590, 2)],
+    [{ ...boss(4, "宵闇の王ノワール", 1197400, 500, 3060, 1, "エターナル・ナイト", 2), autoEnrage: false, bigEvery: 3, bigMult: 1.8 }],
   ] },
 ];
 
 // d4〜d8: 6.3で推奨Lv・K100を測定して調整。変更前後はdocs/worklog.md。
 DUNGEONS.push(
   {"id":"d4","name":"翠蔦の回廊","hue":142,"desc":"鎖のルーンを動かし、同じ色と消そう","floors":[
-    [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":14256,"def":350,"atk":1105,"turn":2,"boss":false,"skills":[{"id":"lock","when":"preempt"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":12960,"def":350,"atk":1062,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"golem","attr":2,"name":"翠ゴーレム","hp":27540,"def":650,"atk":1572,"turn":3,"boss":false,"skills":[{"id":"lock","when":"every:3"}]},{"kind":"wisp","attr":1,"name":"蒼ウィスプ","hp":14580,"def":350,"atk":1148,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"sentinel","attr":0,"name":"紅センチネル","hp":16200,"def":350,"atk":1190,"turn":2,"boss":false,"skills":[]},{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":17820,"def":350,"atk":1232,"turn":2,"boss":false,"skills":[{"id":"lock","when":"turn:2"}]},{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":16200,"def":350,"atk":1190,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"golem","attr":2,"name":"翠ゴーレム","hp":32400,"def":650,"atk":1700,"turn":3,"boss":false,"skills":[{"id":"lock","when":"preempt"},{"id":"lock","when":"every:4"}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":17820,"def":350,"atk":1232,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"boss","attr":2,"name":"蔦冠のメルティア","hp":145800,"def":650,"atk":1742,"turn":1,"boss":true,"skills":[{"id":"lock","when":"preempt"},{"id":"lock","when":"every:3"}],"autoEnrage":false,"bigName":"蔦冠の縛撃","variant":0,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":93100,"def":350,"atk":1850,"turn":2,"boss":false,"skills":[{"id":"lock","when":"preempt"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":84700,"def":350,"atk":1780,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"golem","attr":2,"name":"翠ゴーレム","hp":179900,"def":650,"atk":2635,"turn":3,"boss":false,"skills":[{"id":"lock","when":"every:3"}]},{"kind":"wisp","attr":1,"name":"蒼ウィスプ","hp":95300,"def":350,"atk":1925,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"sentinel","attr":0,"name":"紅センチネル","hp":105800,"def":350,"atk":1995,"turn":2,"boss":false,"skills":[]},{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":116400,"def":350,"atk":2065,"turn":2,"boss":false,"skills":[{"id":"lock","when":"turn:2"}]},{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":105800,"def":350,"atk":1995,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"golem","attr":2,"name":"翠ゴーレム","hp":211700,"def":650,"atk":2850,"turn":3,"boss":false,"skills":[{"id":"lock","when":"preempt"},{"id":"lock","when":"every:4"}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":116400,"def":350,"atk":2065,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"boss","attr":2,"name":"蔦冠のメルティア","hp":1306800,"def":650,"atk":3495,"turn":1,"boss":true,"skills":[{"id":"lock","when":"preempt"},{"id":"lock","when":"every:3"}],"autoEnrage":false,"bigName":"蔦冠の縛撃","variant":0,"bigEvery":3,"bigMult":1.8}]
   ]},
   {"id":"d5","name":"紅蓮の溶鉱炉","hue":16,"desc":"毒の消しすぎに注意。再生する敵を集中攻撃","floors":[
-    [{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":11000,"def":350,"atk":725,"turn":2,"boss":false,"skills":[{"id":"poison","when":"preempt"}]},{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":11000,"def":350,"atk":725,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"golem","attr":0,"name":"紅ゴーレム","hp":21000,"def":650,"atk":1075,"turn":3,"boss":false,"skills":[{"id":"regen","when":"preempt"}]},{"kind":"wisp","attr":1,"name":"蒼ウィスプ","hp":12000,"def":350,"atk":775,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":13000,"def":350,"atk":775,"turn":2,"boss":false,"skills":[{"id":"poison","when":"turn:1"}]},{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":12000,"def":350,"atk":750,"turn":2,"boss":false,"skills":[]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":12000,"def":350,"atk":750,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"golem","attr":0,"name":"紅ゴーレム","hp":25000,"def":650,"atk":1150,"turn":3,"boss":false,"skills":[{"id":"regen","when":"preempt"},{"id":"poison","when":"every:4"}]},{"kind":"wisp","attr":2,"name":"翠ウィスプ","hp":13000,"def":350,"atk":800,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"boss","attr":0,"name":"熔鉄の巨神ヴォルカ","hp":120000,"def":650,"atk":1200,"turn":1,"boss":true,"skills":[{"id":"regen","when":"preempt"},{"id":"poison","when":"every:4"}],"autoEnrage":false,"bigName":"メルト・ハンマー","variant":1,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":72700,"def":350,"atk":1780,"turn":2,"boss":false,"skills":[{"id":"poison","when":"preempt"}]},{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":72700,"def":350,"atk":1780,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"golem","attr":0,"name":"紅ゴーレム","hp":138900,"def":650,"atk":2635,"turn":3,"boss":false,"skills":[{"id":"regen","when":"preempt"}]},{"kind":"wisp","attr":1,"name":"蒼ウィスプ","hp":79400,"def":350,"atk":1900,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":86000,"def":350,"atk":1900,"turn":2,"boss":false,"skills":[{"id":"poison","when":"turn:1"}]},{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":79400,"def":350,"atk":1840,"turn":2,"boss":false,"skills":[]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":79400,"def":350,"atk":1840,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"golem","attr":0,"name":"紅ゴーレム","hp":165300,"def":650,"atk":2820,"turn":3,"boss":false,"skills":[{"id":"regen","when":"preempt"},{"id":"poison","when":"every:4"}]},{"kind":"wisp","attr":2,"name":"翠ウィスプ","hp":86000,"def":350,"atk":1960,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"boss","attr":0,"name":"熔鉄の巨神ヴォルカ","hp":693200,"def":650,"atk":3355,"turn":1,"boss":true,"skills":[{"id":"regen","when":"preempt"},{"id":"poison","when":"every:4"}],"autoEnrage":false,"bigName":"メルト・ハンマー","variant":1,"bigEvery":3,"bigMult":1.8}]
   ]},
   {"id":"d6","name":"輝きの天文台","hue":46,"desc":"暗闇でも並びは同じ。7コンボの盾を突破","floors":[
-    [{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":19250,"def":350,"atk":1700,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]},{"kind":"sentinel","attr":1,"name":"蒼センチネル","hp":17875,"def":350,"atk":1600,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"golem","attr":3,"name":"輝ゴーレム","hp":35750,"def":650,"atk":2400,"turn":3,"boss":false,"skills":[{"id":"comboAbsorb","when":"preempt","min":6}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":19250,"def":350,"atk":1700,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"sentinel","attr":0,"name":"紅センチネル","hp":19250,"def":350,"atk":1650,"turn":2,"boss":false,"skills":[]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":20625,"def":350,"atk":1750,"turn":2,"boss":false,"skills":[{"id":"dark","when":"turn:1"}]},{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":19250,"def":350,"atk":1650,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"golem","attr":3,"name":"輝ゴーレム","hp":42625,"def":650,"atk":2550,"turn":3,"boss":false,"skills":[{"id":"dark","when":"preempt"},{"id":"comboAbsorb","when":"turn:2","min":7}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":20625,"def":350,"atk":1750,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"boss","attr":3,"name":"星詠みの機神アストラ","hp":198000,"def":650,"atk":2750,"turn":1,"boss":true,"skills":[{"id":"comboAbsorb","when":"preempt","min":7},{"id":"dark","when":"every:3"},{"id":"comboAbsorb","when":"every:5","min":7}],"autoEnrage":false,"bigName":"アストラル・バースト","variant":2,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":137400,"def":350,"atk":2285,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]},{"kind":"sentinel","attr":1,"name":"蒼センチネル","hp":127600,"def":350,"atk":2150,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"golem","attr":3,"name":"輝ゴーレム","hp":255300,"def":650,"atk":3230,"turn":3,"boss":false,"skills":[{"id":"comboAbsorb","when":"preempt","min":6}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":137400,"def":350,"atk":2285,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"sentinel","attr":0,"name":"紅センチネル","hp":137400,"def":350,"atk":2220,"turn":2,"boss":false,"skills":[]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":147300,"def":350,"atk":2355,"turn":2,"boss":false,"skills":[{"id":"dark","when":"turn:1"}]},{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":137400,"def":350,"atk":2220,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"golem","attr":3,"name":"輝ゴーレム","hp":304300,"def":650,"atk":3430,"turn":3,"boss":false,"skills":[{"id":"dark","when":"preempt"},{"id":"comboAbsorb","when":"turn:2","min":7}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":147300,"def":350,"atk":2355,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"boss","attr":3,"name":"星詠みの機神アストラ","hp":2283700,"def":650,"atk":4095,"turn":1,"boss":true,"skills":[{"id":"comboAbsorb","when":"preempt","min":7},{"id":"dark","when":"every:3"},{"id":"comboAbsorb","when":"every:5","min":7}],"autoEnrage":false,"bigName":"アストラル・バースト","variant":2,"bigEvery":3,"bigMult":1.8}]
   ]},
   {"id":"d7","name":"万華の深層","hue":228,"desc":"吸収する色を避けよう。属性変化と攻撃上限","floors":[
-    [{"kind":"sentinel","attr":0,"name":"紅センチネル","hp":21600,"def":350,"atk":1800,"turn":2,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":0}]},{"kind":"wisp","attr":1,"name":"蒼ウィスプ","hp":21600,"def":350,"atk":1800,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"golem","attr":2,"name":"翠ゴーレム","hp":43200,"def":650,"atk":2700,"turn":3,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":30000}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":22950,"def":350,"atk":1900,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":24300,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[{"id":"attrChange","when":"every:3","attrs":[3,4]}]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":24300,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"golem","attr":1,"name":"蒼ゴーレム","hp":48600,"def":650,"atk":2800,"turn":3,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":1},{"id":"attrChange","when":"every:3"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":24300,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":27000,"def":350,"atk":2000,"turn":2,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":35000}]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":25650,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":25650,"def":350,"atk":1950,"turn":2,"boss":false,"skills":[]}],
-    [{"kind":"boss","attr":0,"name":"緋翼の剣鬼ヴァーミリオン","hp":248400,"def":650,"atk":3100,"turn":1,"boss":true,"skills":[{"id":"damageCap","when":"preempt","limit":45000},{"id":"absorb","when":"turn:1","attr":3},{"id":"attrChange","when":"every:3"},{"id":"absorb","when":"every:5","attr":4}],"autoEnrage":false,"bigName":"緋閃・断界","variant":0,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"sentinel","attr":0,"name":"紅センチネル","hp":89700,"def":350,"atk":2445,"turn":2,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":0}]},{"kind":"wisp","attr":1,"name":"蒼ウィスプ","hp":89700,"def":350,"atk":2445,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"golem","attr":2,"name":"翠ゴーレム","hp":179500,"def":650,"atk":3670,"turn":3,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":30000}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":95300,"def":350,"atk":2580,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":100900,"def":350,"atk":2650,"turn":2,"boss":false,"skills":[{"id":"attrChange","when":"every:3","attrs":[3,4]}]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":100900,"def":350,"atk":2650,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"golem","attr":1,"name":"蒼ゴーレム","hp":201900,"def":650,"atk":3805,"turn":3,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":1},{"id":"attrChange","when":"every:3"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":100900,"def":350,"atk":2650,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":112200,"def":350,"atk":2720,"turn":2,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":35000}]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":106600,"def":350,"atk":2650,"turn":2,"boss":false,"skills":[]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":106600,"def":350,"atk":2650,"turn":2,"boss":false,"skills":[]}],
+    [{"kind":"boss","attr":0,"name":"緋翼の剣鬼ヴァーミリオン","hp":622700,"def":650,"atk":4585,"turn":1,"boss":true,"skills":[{"id":"damageCap","when":"preempt","limit":45000},{"id":"absorb","when":"turn:1","attr":3},{"id":"attrChange","when":"every:3"},{"id":"absorb","when":"every:5","attr":4}],"autoEnrage":false,"bigName":"緋閃・断界","variant":0,"bigEvery":3,"bigMult":1.8}]
   ]},
   {"id":"d8","name":"終焉の玉座","hue":280,"desc":"すべての仕掛けを乗り越え、三形態の王へ","floors":[
-    [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":18900,"def":350,"atk":1512,"turn":2,"boss":false,"skills":[{"id":"lock","when":"preempt"},{"id":"dark","when":"every:4"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":18000,"def":350,"atk":1440,"turn":2,"boss":false,"skills":[{"id":"poison","when":"turn:2"}]}],
-    [{"kind":"golem","attr":0,"name":"紅ゴーレム","hp":37800,"def":650,"atk":2232,"turn":3,"boss":false,"skills":[{"id":"regen","when":"preempt"}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":19800,"def":350,"atk":1548,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]}],
-    [{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"comboAbsorb","when":"preempt","min":7}]},{"kind":"sentinel","attr":1,"name":"蒼センチネル","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":1}]}],
-    [{"kind":"golem","attr":4,"name":"冥ゴーレム","hp":43200,"def":650,"atk":2376,"turn":3,"boss":false,"skills":[{"id":"endure","when":"preempt"},{"id":"attrChange","when":"every:3"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":21600,"def":350,"atk":1584,"turn":2,"boss":false,"skills":[{"id":"poison","when":"preempt"}]}],
-    [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":23400,"def":350,"atk":1656,"turn":2,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":40000}]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":22500,"def":350,"atk":1620,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":23400,"def":350,"atk":1656,"turn":2,"boss":false,"skills":[{"id":"lock","when":"turn:2"}]}],
-    [{"kind":"boss","attr":4,"name":"終焉の王オブシディアン","hp":216000,"hpRate":0.5,"def":650,"atk":2520,"turn":1,"boss":true,"skills":[{"id":"endure","when":"preempt"},{"id":"transform","when":"depleted","phase":1,"to":{"hpRate":0.25,"form":2,"phaseName":"オブシディアン・深淵","attr":4,"atk":2808,"turn":1,"bigEvery":3,"bigMult":1.8,"bigName":"崩壊の烈火"}},{"id":"transform","when":"depleted","phase":2,"to":{"hpRate":0.25,"form":3,"phaseName":"終焉神オブシディアン","attr":4,"atk":3024,"turn":1,"bigEvery":2,"bigMult":1.8,"bigName":"終焉の深淵"}},{"id":"lock","when":"every:3","phase":1},{"id":"dark","when":"every:3","phase":2},{"id":"poison","when":"every:4","phase":2},{"id":"comboAbsorb","when":"every:4","phase":3,"min":8},{"id":"absorb","when":"every:5","phase":3,"attr":4},{"id":"attrChange","when":"every:2","phase":3}],"autoEnrage":false,"bigName":"終焉の審判","variant":1,"bigEvery":3,"bigMult":1.8}]
+    [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":104000,"def":350,"atk":2485,"turn":2,"boss":false,"skills":[{"id":"lock","when":"preempt"},{"id":"dark","when":"every:4"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":99000,"def":350,"atk":2365,"turn":2,"boss":false,"skills":[{"id":"poison","when":"turn:2"}]}],
+    [{"kind":"golem","attr":0,"name":"紅ゴーレム","hp":207900,"def":650,"atk":3665,"turn":3,"boss":false,"skills":[{"id":"regen","when":"preempt"}]},{"kind":"wisp","attr":4,"name":"冥ウィスプ","hp":108900,"def":350,"atk":2540,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]}],
+    [{"kind":"sentinel","attr":3,"name":"輝センチネル","hp":118800,"def":350,"atk":2600,"turn":2,"boss":false,"skills":[{"id":"comboAbsorb","when":"preempt","min":7}]},{"kind":"sentinel","attr":1,"name":"蒼センチネル","hp":118800,"def":350,"atk":2600,"turn":2,"boss":false,"skills":[{"id":"absorb","when":"preempt","attr":1}]}],
+    [{"kind":"golem","attr":4,"name":"冥ゴーレム","hp":237600,"def":650,"atk":3900,"turn":3,"boss":false,"skills":[{"id":"endure","when":"preempt"},{"id":"attrChange","when":"every:3"}]},{"kind":"wisp","attr":0,"name":"紅ウィスプ","hp":118800,"def":350,"atk":2600,"turn":2,"boss":false,"skills":[{"id":"poison","when":"preempt"}]}],
+    [{"kind":"sentinel","attr":2,"name":"翠センチネル","hp":128700,"def":350,"atk":2720,"turn":2,"boss":false,"skills":[{"id":"damageCap","when":"preempt","limit":40000}]},{"kind":"wisp","attr":3,"name":"輝ウィスプ","hp":123800,"def":350,"atk":2660,"turn":2,"boss":false,"skills":[{"id":"dark","when":"preempt"}]},{"kind":"sentinel","attr":4,"name":"冥センチネル","hp":128700,"def":350,"atk":2720,"turn":2,"boss":false,"skills":[{"id":"lock","when":"turn:2"}]}],
+    [{"kind":"boss","attr":4,"name":"終焉の王オブシディアン","hp":2073200,"def":650,"atk":4570,"turn":1,"boss":true,"skills":[{"id":"endure","when":"preempt"},{"id":"transform","when":"depleted","to":{"form":2,"phaseName":"オブシディアン・深淵","attr":4,"atk":5090,"turn":1,"bigEvery":3,"bigMult":1.8,"bigName":"崩壊の烈火","hpRate":0.25},"phase":1},{"id":"transform","when":"depleted","phase":2,"to":{"form":3,"phaseName":"終焉神オブシディアン","attr":4,"atk":5485,"turn":1,"bigEvery":2,"bigMult":1.8,"bigName":"終焉の深淵","hpRate":0.25}},{"id":"lock","when":"every:3","phase":1},{"id":"dark","when":"every:3","phase":2},{"id":"poison","when":"every:4","phase":2},{"id":"comboAbsorb","when":"every:4","phase":3,"min":8},{"id":"absorb","when":"every:5","phase":3,"attr":4},{"id":"attrChange","when":"every:2","phase":3}],"autoEnrage":false,"bigName":"終焉の審判","variant":1,"bigEvery":3,"bigMult":1.8,"hpRate":0.5}]
   ]}
 );
 DUNGEONS.forEach((d,i)=>{d.recommendedLv=CONFIG.DUNGEON_LEVELS[i];d.starGoals=CONFIG.STAR_GOALS[i];});
