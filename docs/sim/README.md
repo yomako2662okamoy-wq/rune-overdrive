@@ -30,3 +30,5 @@ Baseline source: 62c8e3e. Tuned enemy data: df0f777. Both CSV files use seed 202
 
 - 比較元g1-balance-200.csv／jsonはClaudeのG1記録として保持。3連戦へ数値を移した直後はg1-three-forms-before-200.csv、3候補の50回はg1-d8-a／b／c-50.csv、最終の全8ダンジョン200回はg1-three-forms-final-200.csvへ記録する。
 - 条件はK100、推奨Lv1／10／17／21／25／28／33／35、seed20261006、上限300ターン、敗北を含む全試行の平均。d8の今回の目標はユーザー指定の49〜60%／24〜29.4ターン（sim.mjsの判定も同じ）。d1〜7はG1の数値を変えない。
+
+- 追加許可されたD案の50回はg1-d8-d-50.csv、200回の保存版はg1-d-confirmation-200.csv／json。現在のg1-three-forms-final-200はDの測定結果（d8目標未達）で、数値確定済みという意味ではない。許可の経緯と目標判定はworklogに記録する。
